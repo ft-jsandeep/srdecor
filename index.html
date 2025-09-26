@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill Generator Pro</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Authentication Section -->
+    <div id="auth-section" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1><i class="fas fa-receipt"></i> Bill Generator Pro</h1>
+                <p>Manage your business invoices efficiently</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+                <button class="tab-btn" onclick="switchTab('register')">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form hidden">
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm">Confirm Password</label>
+                    <input type="password" id="register-confirm" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Register</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="main-app" class="hidden">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1><i class="fas fa-receipt"></i> Bill Generator Pro</h1>
+                <div class="header-actions">
+                    <button id="new-bill-btn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> New Bill
+                    </button>
+                    <button id="view-bills-btn" class="btn btn-secondary">
+                        <i class="fas fa-list"></i> View Bills
+                    </button>
+                    <button id="logout-btn" class="btn btn-outline">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Bill Generator Form -->
+            <div id="bill-generator" class="bill-generator">
+                <div class="generator-header">
+                    <h2>Create New Bill</h2>
+                </div>
+                
+                <form id="bill-form" class="bill-form">
+                    <!-- Business Information -->
+                    <div class="form-section">
+                        <h3>Business Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="business-name">Business Name</label>
+                                <input type="text" id="business-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="business-email">Email</label>
+                                <input type="email" id="business-email" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="business-phone">Phone</label>
+                                <input type="tel" id="business-phone" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="business-address">Address</label>
+                                <input type="text" id="business-address" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Information -->
+                    <div class="form-section">
+                        <h3>Customer Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="customer-name">Customer Name</label>
+                                <input type="text" id="customer-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="customer-email">Email</label>
+                                <input type="email" id="customer-email">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="customer-phone">Phone</label>
+                                <input type="tel" id="customer-phone">
+                            </div>
+                            <div class="form-group">
+                                <label for="bill-date">Bill Date</label>
+                                <input type="date" id="bill-date" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Items Section -->
+                    <div class="form-section">
+                        <h3>Items</h3>
+                        <div id="items-container">
+                            <!-- Initial item row will be added by JavaScript -->
+                        </div>
+                        <button type="button" id="add-item-btn" class="btn btn-secondary">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+
+                    <!-- Totals Section -->
+                    <div class="form-section">
+                        <h3>Bill Summary</h3>
+                        <div class="totals-container">
+                            <div class="total-row">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">₹0.00</span>
+                            </div>
+                            <div class="total-row">
+                                <label for="tax-rate">Tax Rate (%):</label>
+                                <input type="number" id="tax-rate" min="0" max="100" step="0.01" value="18">
+                            </div>
+                            <div class="total-row">
+                                <span>Tax Amount:</span>
+                                <span id="tax-amount">₹0.00</span>
+                            </div>
+                            <div class="total-row total-final">
+                                <span>Total Amount:</span>
+                                <span id="total-amount">₹0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="form-actions">
+                        <button type="button" id="preview-bill-btn" class="btn btn-secondary">
+                            <i class="fas fa-eye"></i> Preview Bill
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Bill
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Bills List -->
+            <div id="bills-list" class="bills-list hidden">
+                <div class="bills-header">
+                    <h2>Saved Bills</h2>
+                    <div class="bills-actions">
+                        <input type="text" id="search-bills" placeholder="Search bills...">
+                        <button id="back-to-generator" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Generator
+                        </button>
+                    </div>
+                </div>
+                <div id="bills-container" class="bills-container">
+                    <!-- Bills will be loaded here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bill Preview Modal -->
+    <div id="bill-preview-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Bill Preview</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="bill-preview-content">
+                    <!-- Bill preview will be generated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="print-bill-btn" class="btn btn-primary">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button class="btn btn-secondary close-modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ES6 Modules -->
+    <script type="module">
+        import { BillGeneratorApp } from './app.js';
+        
+        // Initialize the application
+        window.app = new BillGeneratorApp();
+    </script>
+</body>
+</html>
