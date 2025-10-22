@@ -1,5 +1,5 @@
 // Authentication management
-import { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from './firebase-config.js';
+import { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup, googleProvider } from './firebase-config.js';
 
 export class AuthManager {
     constructor() {
@@ -60,5 +60,16 @@ export class AuthManager {
     // Check if user is authenticated
     isAuthenticated() {
         return this.currentUser !== null;
+    }
+
+    // Sign in with Google
+    async signInWithGoogle() {
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            this.currentUser = result.user;
+            return result.user;
+        } catch (error) {
+            throw new Error('Google sign-in failed: ' + error.message);
+        }
     }
 }

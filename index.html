@@ -33,6 +33,16 @@
                     <input type="password" id="login-password" required>
                 </div>
                 <button type="submit" class="btn btn-primary">Login</button>
+                
+                <!-- Divider -->
+                <div class="auth-divider">
+                    <span>or</span>
+                </div>
+                
+                <!-- Google Sign-In Button -->
+                <button type="button" id="google-signin-btn" class="btn btn-google">
+                    <i class="fab fa-google"></i> Sign in with Google
+                </button>
             </form>
 
             <!-- Register Form -->
@@ -50,6 +60,16 @@
                     <input type="password" id="register-confirm" required>
                 </div>
                 <button type="submit" class="btn btn-primary">Register</button>
+                
+                <!-- Divider -->
+                <div class="auth-divider">
+                    <span>or</span>
+                </div>
+                
+                <!-- Google Sign-In Button -->
+                <button type="button" id="google-signin-btn-register" class="btn btn-google">
+                    <i class="fab fa-google"></i> Sign up with Google
+                </button>
             </form>
         </div>
     </div>
@@ -67,6 +87,12 @@
                     <button id="view-bills-btn" class="btn btn-secondary">
                         <i class="fas fa-list"></i> View Bills
                     </button>
+                    <button id="warehouse-btn" class="btn btn-outline" onclick="showWarehouse()">
+                        <i class="fas fa-warehouse"></i> Warehouse
+                    </button>
+                    <button id="business-settings-btn" class="btn btn-outline">
+                        <i class="fas fa-cog"></i> Business Settings
+                    </button>
                     <button id="logout-btn" class="btn btn-outline">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
@@ -76,6 +102,148 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <!-- Business Settings Modal -->
+            <div id="business-settings-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Business Settings</h2>
+                        <button class="close-modal" onclick="app.closeBusinessSettings()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="business-settings-form">
+                            <div class="form-section">
+                                <h3>Default Business Information</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="default-business-name">Business Name</label>
+                                        <input type="text" id="default-business-name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="default-business-email">Email</label>
+                                        <input type="email" id="default-business-email">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="default-business-phone">Phone</label>
+                                        <input type="tel" id="default-business-phone">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="default-business-gstin">GSTIN</label>
+                                        <input type="text" id="default-business-gstin">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="default-business-pan">PAN No.</label>
+                                        <input type="text" id="default-business-pan">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="default-business-state">Business State</label>
+                                        <select id="default-business-state">
+                                            <option value="">Select State</option>
+                                            <option value="Andhra Pradesh (37)">Andhra Pradesh (37)</option>
+                                            <option value="Arunachal Pradesh (12)">Arunachal Pradesh (12)</option>
+                                            <option value="Assam (18)">Assam (18)</option>
+                                            <option value="Bihar (10)">Bihar (10)</option>
+                                            <option value="Chhattisgarh (22)">Chhattisgarh (22)</option>
+                                            <option value="Goa (30)">Goa (30)</option>
+                                            <option value="Gujarat (24)">Gujarat (24)</option>
+                                            <option value="Haryana (06)" selected>Haryana (06)</option>
+                                            <option value="Himachal Pradesh (02)">Himachal Pradesh (02)</option>
+                                            <option value="Jharkhand (20)">Jharkhand (20)</option>
+                                            <option value="Karnataka (29)">Karnataka (29)</option>
+                                            <option value="Kerala (32)">Kerala (32)</option>
+                                            <option value="Madhya Pradesh (23)">Madhya Pradesh (23)</option>
+                                            <option value="Maharashtra (27)">Maharashtra (27)</option>
+                                            <option value="Manipur (14)">Manipur (14)</option>
+                                            <option value="Meghalaya (17)">Meghalaya (17)</option>
+                                            <option value="Mizoram (15)">Mizoram (15)</option>
+                                            <option value="Nagaland (13)">Nagaland (13)</option>
+                                            <option value="Odisha (21)">Odisha (21)</option>
+                                            <option value="Punjab (03)">Punjab (03)</option>
+                                            <option value="Rajasthan (08)">Rajasthan (08)</option>
+                                            <option value="Sikkim (11)">Sikkim (11)</option>
+                                            <option value="Tamil Nadu (33)">Tamil Nadu (33)</option>
+                                            <option value="Telangana (36)">Telangana (36)</option>
+                                            <option value="Tripura (16)">Tripura (16)</option>
+                                            <option value="Uttar Pradesh (09)">Uttar Pradesh (09)</option>
+                                            <option value="Uttarakhand (05)">Uttarakhand (05)</option>
+                                            <option value="West Bengal (19)">West Bengal (19)</option>
+                                            <option value="Andaman and Nicobar Islands (35)">Andaman and Nicobar Islands (35)</option>
+                                            <option value="Chandigarh (04)">Chandigarh (04)</option>
+                                            <option value="Dadra and Nagar Haveli and Daman and Diu (26)">Dadra and Nagar Haveli and Daman and Diu (26)</option>
+                                            <option value="Delhi (07)">Delhi (07)</option>
+                                            <option value="Jammu and Kashmir (01)">Jammu and Kashmir (01)</option>
+                                            <option value="Ladakh (38)">Ladakh (38)</option>
+                                            <option value="Lakshadweep (31)">Lakshadweep (31)</option>
+                                            <option value="Puducherry (34)">Puducherry (34)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label for="default-business-address">Address</label>
+                                        <textarea id="default-business-address" rows="3"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-section">
+                                <h3>Default Bank Details</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="default-bank-name">Bank Name</label>
+                                        <input type="text" id="default-bank-name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="default-account-holder-name">A/c Holder Name</label>
+                                        <input type="text" id="default-account-holder-name">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="default-account-number">Account Number</label>
+                                        <input type="text" id="default-account-number">
+                                    </div>
+                                    <div class="form-group">
+                                        <!-- Empty div for layout balance -->
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="default-ifsc-code">IFSC Code</label>
+                                        <input type="text" id="default-ifsc-code">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="default-branch">Branch</label>
+                                        <input type="text" id="default-branch">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-section">
+                                <h3>Default Terms & Conditions</h3>
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label for="default-terms">Terms & Conditions</label>
+                                        <textarea id="default-terms" rows="6" placeholder="Enter your default terms and conditions..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" onclick="app.closeBusinessSettings()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Settings</button>
+                                <button type="button" class="btn btn-secondary" onclick="app.setSRDecorBusinessInfo()">Set S.R. Decor Info</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!-- Bill Generator Form -->
             <div id="bill-generator" class="bill-generator">
                 <div class="generator-header">
@@ -83,9 +251,55 @@
                 </div>
                 
                 <form id="bill-form" class="bill-form">
+                    <!-- Bill Type and Template Selection -->
+                    <div class="form-section">
+                        <h3>Bill Configuration</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bill-type">Bill Type</label>
+                                <select id="bill-type" required>
+                                    <option value="invoice">Invoice</option>
+                                    <option value="estimate">Estimate</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="template-select">Choose Template</label>
+                                <select id="template-select" required>
+                                    <option value="est-rt">SR Format</option>
+                                    <option value="ovies">OVIES Global Format</option>
+                                    <option value="default">Default Format</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bill-number">Bill Number</label>
+                                <input type="text" id="bill-number" placeholder="Auto-generated if empty">
+                            </div>
+                            <div class="form-group">
+                                <label for="bill-date">Bill Date</label>
+                                <input type="date" id="bill-date" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="place-of-supply">Place of Supply</label>
+                                <input type="text" id="place-of-supply" value="Haryana (06)">
+                            </div>
+                            <div class="form-group">
+                                <!-- Empty div for layout balance -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Business Information -->
                     <div class="form-section">
-                        <h3>Business Information</h3>
+                        <div class="section-header">
+                            <h3>Business Information</h3>
+                            <button type="button" id="clear-business-info-btn" class="btn btn-outline btn-sm">
+                                <i class="fas fa-eraser"></i> Clear
+                            </button>
+                        </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="business-name">Business Name</label>
@@ -102,8 +316,62 @@
                                 <input type="tel" id="business-phone" required>
                             </div>
                             <div class="form-group">
+                                <label for="business-gstin">GSTIN</label>
+                                <input type="text" id="business-gstin">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="business-pan">PAN No.</label>
+                                <input type="text" id="business-pan">
+                            </div>
+                            <div class="form-group">
+                                <label for="business-state">Business State</label>
+                                <select id="business-state" required>
+                                    <option value="">Select State</option>
+                                    <option value="Andhra Pradesh (37)">Andhra Pradesh (37)</option>
+                                    <option value="Arunachal Pradesh (12)">Arunachal Pradesh (12)</option>
+                                    <option value="Assam (18)">Assam (18)</option>
+                                    <option value="Bihar (10)">Bihar (10)</option>
+                                    <option value="Chhattisgarh (22)">Chhattisgarh (22)</option>
+                                    <option value="Goa (30)">Goa (30)</option>
+                                    <option value="Gujarat (24)">Gujarat (24)</option>
+                                    <option value="Haryana (06)" selected>Haryana (06)</option>
+                                    <option value="Himachal Pradesh (02)">Himachal Pradesh (02)</option>
+                                    <option value="Jharkhand (20)">Jharkhand (20)</option>
+                                    <option value="Karnataka (29)">Karnataka (29)</option>
+                                    <option value="Kerala (32)">Kerala (32)</option>
+                                    <option value="Madhya Pradesh (23)">Madhya Pradesh (23)</option>
+                                    <option value="Maharashtra (27)">Maharashtra (27)</option>
+                                    <option value="Manipur (14)">Manipur (14)</option>
+                                    <option value="Meghalaya (17)">Meghalaya (17)</option>
+                                    <option value="Mizoram (15)">Mizoram (15)</option>
+                                    <option value="Nagaland (13)">Nagaland (13)</option>
+                                    <option value="Odisha (21)">Odisha (21)</option>
+                                    <option value="Punjab (03)">Punjab (03)</option>
+                                    <option value="Rajasthan (08)">Rajasthan (08)</option>
+                                    <option value="Sikkim (11)">Sikkim (11)</option>
+                                    <option value="Tamil Nadu (33)">Tamil Nadu (33)</option>
+                                    <option value="Telangana (36)">Telangana (36)</option>
+                                    <option value="Tripura (16)">Tripura (16)</option>
+                                    <option value="Uttar Pradesh (09)">Uttar Pradesh (09)</option>
+                                    <option value="Uttarakhand (05)">Uttarakhand (05)</option>
+                                    <option value="West Bengal (19)">West Bengal (19)</option>
+                                    <option value="Andaman and Nicobar Islands (35)">Andaman and Nicobar Islands (35)</option>
+                                    <option value="Chandigarh (04)">Chandigarh (04)</option>
+                                    <option value="Dadra and Nagar Haveli and Daman and Diu (26)">Dadra and Nagar Haveli and Daman and Diu (26)</option>
+                                    <option value="Delhi (07)">Delhi (07)</option>
+                                    <option value="Jammu and Kashmir (01)">Jammu and Kashmir (01)</option>
+                                    <option value="Ladakh (38)">Ladakh (38)</option>
+                                    <option value="Lakshadweep (31)">Lakshadweep (31)</option>
+                                    <option value="Puducherry (34)">Puducherry (34)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group full-width">
                                 <label for="business-address">Address</label>
-                                <input type="text" id="business-address" required>
+                                <textarea id="business-address" rows="3" required></textarea>
                             </div>
                         </div>
                     </div>
@@ -114,7 +382,8 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="customer-name">Customer Name</label>
-                                <input type="text" id="customer-name" required>
+                                <input type="text" id="customer-name" list="customers-datalist" required>
+                                <datalist id="customers-datalist"></datalist>
                             </div>
                             <div class="form-group">
                                 <label for="customer-email">Email</label>
@@ -127,8 +396,100 @@
                                 <input type="tel" id="customer-phone">
                             </div>
                             <div class="form-group">
-                                <label for="bill-date">Bill Date</label>
-                                <input type="date" id="bill-date" required>
+                                <label for="customer-gstin">GSTIN</label>
+                                <input type="text" id="customer-gstin">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="customer-address">Address</label>
+                                <textarea id="customer-address" rows="3"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="customer-city">City</label>
+                                <input type="text" id="customer-city">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="customer-state">State</label>
+                                <select id="customer-state" required>
+                                    <option value="">Select State</option>
+                                    <option value="Andhra Pradesh (37)">Andhra Pradesh (37)</option>
+                                    <option value="Arunachal Pradesh (12)">Arunachal Pradesh (12)</option>
+                                    <option value="Assam (18)">Assam (18)</option>
+                                    <option value="Bihar (10)">Bihar (10)</option>
+                                    <option value="Chhattisgarh (22)">Chhattisgarh (22)</option>
+                                    <option value="Goa (30)">Goa (30)</option>
+                                    <option value="Gujarat (24)">Gujarat (24)</option>
+                                    <option value="Haryana (06)">Haryana (06)</option>
+                                    <option value="Himachal Pradesh (02)">Himachal Pradesh (02)</option>
+                                    <option value="Jharkhand (20)">Jharkhand (20)</option>
+                                    <option value="Karnataka (29)">Karnataka (29)</option>
+                                    <option value="Kerala (32)">Kerala (32)</option>
+                                    <option value="Madhya Pradesh (23)">Madhya Pradesh (23)</option>
+                                    <option value="Maharashtra (27)">Maharashtra (27)</option>
+                                    <option value="Manipur (14)">Manipur (14)</option>
+                                    <option value="Meghalaya (17)">Meghalaya (17)</option>
+                                    <option value="Mizoram (15)">Mizoram (15)</option>
+                                    <option value="Nagaland (13)">Nagaland (13)</option>
+                                    <option value="Odisha (21)">Odisha (21)</option>
+                                    <option value="Punjab (03)">Punjab (03)</option>
+                                    <option value="Rajasthan (08)">Rajasthan (08)</option>
+                                    <option value="Sikkim (11)">Sikkim (11)</option>
+                                    <option value="Tamil Nadu (33)">Tamil Nadu (33)</option>
+                                    <option value="Telangana (36)">Telangana (36)</option>
+                                    <option value="Tripura (16)">Tripura (16)</option>
+                                    <option value="Uttar Pradesh (09)">Uttar Pradesh (09)</option>
+                                    <option value="Uttarakhand (05)">Uttarakhand (05)</option>
+                                    <option value="West Bengal (19)">West Bengal (19)</option>
+                                    <option value="Andaman and Nicobar Islands (35)">Andaman and Nicobar Islands (35)</option>
+                                    <option value="Chandigarh (04)">Chandigarh (04)</option>
+                                    <option value="Dadra and Nagar Haveli and Daman and Diu (26)">Dadra and Nagar Haveli and Daman and Diu (26)</option>
+                                    <option value="Delhi (07)">Delhi (07)</option>
+                                    <option value="Jammu and Kashmir (01)">Jammu and Kashmir (01)</option>
+                                    <option value="Ladakh (38)">Ladakh (38)</option>
+                                    <option value="Lakshadweep (31)">Lakshadweep (31)</option>
+                                    <option value="Puducherry (34)">Puducherry (34)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="customer-pincode">Pincode</label>
+                                <input type="text" id="customer-pincode">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bank Details (Optional) -->
+                    <div class="form-section">
+                        <h3>Bank Details <span class="optional">(Optional)</span></h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bank-name">Bank Name</label>
+                                <input type="text" id="bank-name">
+                            </div>
+                            <div class="form-group">
+                                <label for="account-holder-name">A/c Holder Name</label>
+                                <input type="text" id="account-holder-name">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="account-number">Account Number</label>
+                                <input type="text" id="account-number">
+                            </div>
+                            <div class="form-group">
+                                <!-- Empty div for layout balance -->
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="ifsc-code">IFSC Code</label>
+                                <input type="text" id="ifsc-code">
+                            </div>
+                            <div class="form-group">
+                                <label for="branch">Branch</label>
+                                <input type="text" id="branch">
                             </div>
                         </div>
                     </div>
@@ -144,6 +505,17 @@
                         </button>
                     </div>
 
+                    <!-- Terms & Conditions -->
+                    <div class="form-section">
+                        <h3>Terms & Conditions</h3>
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="terms-conditions">Terms & Conditions</label>
+                                <textarea id="terms-conditions" rows="6" placeholder="Enter terms and conditions..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Totals Section -->
                     <div class="form-section">
                         <h3>Bill Summary</h3>
@@ -153,12 +525,12 @@
                                 <span id="subtotal">₹0.00</span>
                             </div>
                             <div class="total-row">
-                                <label for="tax-rate">Tax Rate (%):</label>
-                                <input type="number" id="tax-rate" min="0" max="100" step="0.01" value="18">
+                                <span>Total Tax:</span>
+                                <span id="total-tax-amount">₹0.00</span>
                             </div>
                             <div class="total-row">
-                                <span>Tax Amount:</span>
-                                <span id="tax-amount">₹0.00</span>
+                                <span>Rounding:</span>
+                                <span id="rounding-amount">₹0.00</span>
                             </div>
                             <div class="total-row total-final">
                                 <span>Total Amount:</span>
@@ -184,7 +556,10 @@
                 <div class="bills-header">
                     <h2>Saved Bills</h2>
                     <div class="bills-actions">
-                        <input type="text" id="search-bills" placeholder="Search bills...">
+                        <div class="search-box">
+                            <input type="text" id="search-bills" placeholder="Search bills...">
+                            <i class="fas fa-search"></i>
+                        </div>
                         <button id="back-to-generator" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Back to Generator
                         </button>
@@ -194,36 +569,109 @@
                     <!-- Bills will be loaded here -->
                 </div>
             </div>
+
+            <!-- Warehouse Section -->
+            <div id="warehouse-section" class="warehouse-section hidden">
+                <div class="warehouse-header">
+                    <h2>Warehouse Management</h2>
+                    <div class="warehouse-actions">
+                        <div class="search-box">
+                            <input type="text" id="search-items" placeholder="Search items...">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <button id="add-item-btn-warehouse" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                        <button id="back-to-generator-warehouse" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Generator
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Add/Edit Item Modal -->
+                <div id="item-modal" class="modal hidden">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2 id="item-modal-title">Add New Item</h2>
+                            <button class="close-modal" onclick="app.closeItemModal()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="item-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="item-name">Item Name *</label>
+                                        <input type="text" id="item-name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="item-hsn">HSN Code *</label>
+                                        <input type="text" id="item-hsn" required placeholder="e.g., 44219990">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="item-unit">Default Unit *</label>
+                                        <select id="item-unit" required>
+                                            <option value="pcs">Pieces</option>
+                                            <option value="kg">Kilograms</option>
+                                            <option value="g">Grams</option>
+                                            <option value="l">Liters</option>
+                                            <option value="ml">Milliliters</option>
+                                            <option value="m">Meters</option>
+                                            <option value="cm">Centimeters</option>
+                                            <option value="ft">Feet</option>
+                                            <option value="hrs">Hours</option>
+                                            <option value="days">Days</option>
+                                            <option value="sqm">Square Meters</option>
+                                            <option value="sqft">Sq. Ft.</option>
+                                            <option value="custom">Custom</option>
+                                        </select>
+                                        <input type="text" id="item-custom-unit" class="hidden" placeholder="Enter custom unit">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="item-price">Default Price *</label>
+                                        <input type="number" id="item-price" min="0" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="button" class="btn btn-secondary" onclick="app.closeItemModal()">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Save Item</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="items-container-warehouse" class="items-container">
+                    <!-- Items will be loaded here -->
+                </div>
+            </div>
         </main>
     </div>
 
     <!-- Bill Preview Modal -->
     <div id="bill-preview-modal" class="modal hidden">
-        <div class="modal-content">
+        <div class="modal-content large">
             <div class="modal-header">
-                <h3>Bill Preview</h3>
-                <button class="close-modal">&times;</button>
+                <h2>Bill Preview</h2>
+                <div class="modal-actions">
+                    <button id="print-bill-btn" class="btn btn-secondary">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                    <button class="close-modal" onclick="app.closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <div class="modal-body">
                 <div id="bill-preview-content">
                     <!-- Bill preview will be generated here -->
                 </div>
             </div>
-            <div class="modal-footer">
-                <button id="print-bill-btn" class="btn btn-primary">
-                    <i class="fas fa-print"></i> Print
-                </button>
-                <button class="btn btn-secondary close-modal">Close</button>
-            </div>
         </div>
     </div>
 
-    <!-- ES6 Modules -->
-    <script type="module">
-        import { BillGeneratorApp } from './app.js';
-        
-        // Initialize the application
-        window.app = new BillGeneratorApp();
-    </script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>

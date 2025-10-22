@@ -5,6 +5,8 @@ export class BillManager {
     constructor() {
         this.currentUser = null;
         this.bills = [];
+        this.items = [];
+        this.customers = [];
     }
 
     // Set current user
@@ -15,6 +17,121 @@ export class BillManager {
     // Get current user
     getCurrentUser() {
         return this.currentUser;
+    }
+
+    // ===============================
+    // Items (Products) Management
+    // ===============================
+    async saveItem(item) {
+        if (!this.currentUser) throw new Error('Please log in to save items');
+        const payload = {
+            userId: this.currentUser.uid,
+            name: item.name?.trim() || '',
+            hsn: item.hsn?.trim() || '',
+            defaultRate: Number(item.defaultRate) || 0,
+            defaultUnit: item.defaultUnit || 'pcs',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        };
+        const ref = await addDoc(collection(db, 'items'), payload);
+        return ref.id;
+    }
+
+    async loadItems() {
+        if (!this.currentUser) return [];
+        const q = query(
+            collection(db, 'items'),
+            where('userId', '==', this.currentUser.uid)
+        );
+        const snapshot = await getDocs(q);
+        this.items = [];
+        snapshot.forEach(d => this.items.push({ id: d.id, ...d.data() }));
+        // sort by name asc for dropdowns
+        this.items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        return this.items;
+    }
+
+    getItems() {
+        return this.items;
+    }
+
+    findItemByName(name) {
+        const n = (name || '').toLowerCase();
+        return this.items.find(i => (i.name || '').toLowerCase() === n);
+    }
+
+    async updateItem(itemId, itemData) {
+        if (!this.currentUser) throw new Error('Please log in to update items');
+        const payload = {
+            name: itemData.name?.trim() || '',
+            hsn: itemData.hsn?.trim() || '',
+            defaultRate: Number(itemData.defaultRate) || 0,
+            defaultUnit: itemData.defaultUnit || 'pcs',
+            updatedAt: serverTimestamp()
+        };
+        await updateDoc(doc(db, 'items', itemId), payload);
+        
+        // Update local array
+        const index = this.items.findIndex(item => item.id === itemId);
+        if (index !== -1) {
+            this.items[index] = { ...this.items[index], ...payload, updatedAt: new Date() };
+        }
+    }
+
+    async deleteItem(itemId) {
+        if (!this.currentUser) throw new Error('Please log in to delete items');
+        await deleteDoc(doc(db, 'items', itemId));
+        
+        // Remove from local array
+        this.items = this.items.filter(item => item.id !== itemId);
+    }
+
+    findItemById(itemId) {
+        return this.items.find(item => item.id === itemId);
+    }
+
+    // ===============================
+    // Customers Management
+    // ===============================
+    async saveCustomer(customer) {
+        if (!this.currentUser) throw new Error('Please log in to save customers');
+        const payload = {
+            userId: this.currentUser.uid,
+            name: customer.name?.trim() || '',
+            email: customer.email?.trim() || '',
+            phone: customer.phone?.trim() || '',
+            address: customer.address?.trim() || '',
+            city: customer.city?.trim() || '',
+            state: customer.state?.trim() || '',
+            pincode: customer.pincode?.trim() || '',
+            gstin: customer.gstin?.trim() || '',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        };
+        const ref = await addDoc(collection(db, 'customers'), payload);
+        return ref.id;
+    }
+
+    async loadCustomers() {
+        if (!this.currentUser) return [];
+        const q = query(
+            collection(db, 'customers'),
+            where('userId', '==', this.currentUser.uid)
+        );
+        const snapshot = await getDocs(q);
+        this.customers = [];
+        snapshot.forEach(d => this.customers.push({ id: d.id, ...d.data() }));
+        this.customers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        return this.customers;
+    }
+
+    getCustomers() {
+        return this.customers;
+    }
+
+    findCustomerByName(name) {
+        const n = (name || '').toLowerCase();
+        return this.customers.find(c => (c.name || '').toLowerCase() === n);
     }
 
     // Save a new bill
