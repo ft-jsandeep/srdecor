@@ -134,6 +134,40 @@ export class BillManager {
         return this.customers.find(c => (c.name || '').toLowerCase() === n);
     }
 
+    async updateCustomer(customerId, customerData) {
+        if (!this.currentUser) throw new Error('Please log in to update customers');
+        const payload = {
+            name: customerData.name?.trim() || '',
+            email: customerData.email?.trim() || '',
+            phone: customerData.phone?.trim() || '',
+            address: customerData.address?.trim() || '',
+            city: customerData.city?.trim() || '',
+            state: customerData.state?.trim() || '',
+            pincode: customerData.pincode?.trim() || '',
+            gstin: customerData.gstin?.trim() || '',
+            updatedAt: serverTimestamp()
+        };
+        await updateDoc(doc(db, 'customers', customerId), payload);
+        
+        // Update local array
+        const index = this.customers.findIndex(customer => customer.id === customerId);
+        if (index !== -1) {
+            this.customers[index] = { ...this.customers[index], ...payload, updatedAt: new Date() };
+        }
+    }
+
+    async deleteCustomer(customerId) {
+        if (!this.currentUser) throw new Error('Please log in to delete customers');
+        await deleteDoc(doc(db, 'customers', customerId));
+        
+        // Remove from local array
+        this.customers = this.customers.filter(customer => customer.id !== customerId);
+    }
+
+    findCustomerById(customerId) {
+        return this.customers.find(customer => customer.id === customerId);
+    }
+
     // Save a new bill
     async saveBill(billData) {
         if (!this.currentUser) {
@@ -141,7 +175,9 @@ export class BillManager {
         }
 
         try {
-            const docRef = await addDoc(collection(db, 'bills'), {
+            // Use different collections for estimates and invoices
+            const collectionName = billData.billType === 'estimate' ? 'estimates' : 'bills';
+            const docRef = await addDoc(collection(db, collectionName), {
                 ...billData,
                 userId: this.currentUser.uid,
                 createdAt: serverTimestamp(),
@@ -158,16 +194,28 @@ export class BillManager {
         if (!this.currentUser) return [];
 
         try {
-            // First, get all bills for the user (no ordering)
-            const q = query(
-                collection(db, 'bills'),
-                where('userId', '==', this.currentUser.uid)
-            );
+            // Load from both bills and estimates collections
+            const [billsQuery, estimatesQuery] = await Promise.all([
+                getDocs(query(collection(db, 'bills'), where('userId', '==', this.currentUser.uid))),
+                getDocs(query(collection(db, 'estimates'), where('userId', '==', this.currentUser.uid)))
+            ]);
             
-            const querySnapshot = await getDocs(q);
             this.bills = [];
             
-            querySnapshot.forEach((doc) => {
+            // Process invoices
+            billsQuery.forEach((doc) => {
+                const data = doc.data();
+                this.bills.push({
+                    id: doc.id,
+                    ...data,
+                    // Ensure we have proper date handling
+                    createdAt: data.createdAt || new Date(),
+                    updatedAt: data.updatedAt || new Date()
+                });
+            });
+            
+            // Process estimates
+            estimatesQuery.forEach((doc) => {
                 const data = doc.data();
                 this.bills.push({
                     id: doc.id,
@@ -204,7 +252,15 @@ export class BillManager {
     // Delete a bill
     async deleteBill(billId) {
         try {
-            await deleteDoc(doc(db, 'bills', billId));
+            // Find the bill to determine which collection it's in
+            const bill = this.bills.find(b => b.id === billId);
+            if (!bill) {
+                throw new Error('Bill not found');
+            }
+            
+            const collectionName = bill.billType === 'estimate' ? 'estimates' : 'bills';
+            await deleteDoc(doc(db, collectionName, billId));
+            
             // Remove from local array
             this.bills = this.bills.filter(bill => bill.id !== billId);
         } catch (error) {
@@ -215,7 +271,14 @@ export class BillManager {
     // Update a bill
     async updateBill(billId, billData) {
         try {
-            await updateDoc(doc(db, 'bills', billId), {
+            // Find the bill to determine which collection it's in
+            const bill = this.bills.find(b => b.id === billId);
+            if (!bill) {
+                throw new Error('Bill not found');
+            }
+            
+            const collectionName = bill.billType === 'estimate' ? 'estimates' : 'bills';
+            await updateDoc(doc(db, collectionName, billId), {
                 ...billData,
                 updatedAt: serverTimestamp()
             });

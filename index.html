@@ -90,6 +90,9 @@
                     <button id="warehouse-btn" class="btn btn-outline" onclick="showWarehouse()">
                         <i class="fas fa-warehouse"></i> Warehouse
                     </button>
+                    <button id="customers-btn" class="btn btn-outline" onclick="showCustomers()">
+                        <i class="fas fa-users"></i> Customers
+                    </button>
                     <button id="business-settings-btn" class="btn btn-outline">
                         <i class="fas fa-cog"></i> Business Settings
                     </button>
@@ -460,6 +463,84 @@
                         </div>
                     </div>
 
+                    <!-- Shipping Address (Optional) -->
+                    <div class="form-section">
+                        <h3>Shipping Address <span class="optional">(Optional)</span></h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="shipping-name">Shipping Name</label>
+                                <input type="text" id="shipping-name">
+                            </div>
+                            <div class="form-group">
+                                <label for="shipping-phone">Shipping Phone</label>
+                                <input type="tel" id="shipping-phone">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="shipping-address">Shipping Address</label>
+                                <textarea id="shipping-address" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="shipping-city">Shipping City</label>
+                                <input type="text" id="shipping-city">
+                            </div>
+                            <div class="form-group">
+                                <label for="shipping-state">Shipping State</label>
+                                <select id="shipping-state">
+                                    <option value="">Select State</option>
+                                    <option value="Andhra Pradesh (37)">Andhra Pradesh (37)</option>
+                                    <option value="Arunachal Pradesh (12)">Arunachal Pradesh (12)</option>
+                                    <option value="Assam (18)">Assam (18)</option>
+                                    <option value="Bihar (10)">Bihar (10)</option>
+                                    <option value="Chhattisgarh (22)">Chhattisgarh (22)</option>
+                                    <option value="Goa (30)">Goa (30)</option>
+                                    <option value="Gujarat (24)">Gujarat (24)</option>
+                                    <option value="Haryana (06)">Haryana (06)</option>
+                                    <option value="Himachal Pradesh (02)">Himachal Pradesh (02)</option>
+                                    <option value="Jharkhand (20)">Jharkhand (20)</option>
+                                    <option value="Karnataka (29)">Karnataka (29)</option>
+                                    <option value="Kerala (32)">Kerala (32)</option>
+                                    <option value="Madhya Pradesh (23)">Madhya Pradesh (23)</option>
+                                    <option value="Maharashtra (27)">Maharashtra (27)</option>
+                                    <option value="Manipur (14)">Manipur (14)</option>
+                                    <option value="Meghalaya (17)">Meghalaya (17)</option>
+                                    <option value="Mizoram (15)">Mizoram (15)</option>
+                                    <option value="Nagaland (13)">Nagaland (13)</option>
+                                    <option value="Odisha (21)">Odisha (21)</option>
+                                    <option value="Punjab (03)">Punjab (03)</option>
+                                    <option value="Rajasthan (08)">Rajasthan (08)</option>
+                                    <option value="Sikkim (11)">Sikkim (11)</option>
+                                    <option value="Tamil Nadu (33)">Tamil Nadu (33)</option>
+                                    <option value="Telangana (36)">Telangana (36)</option>
+                                    <option value="Tripura (16)">Tripura (16)</option>
+                                    <option value="Uttar Pradesh (09)">Uttar Pradesh (09)</option>
+                                    <option value="Uttarakhand (05)">Uttarakhand (05)</option>
+                                    <option value="West Bengal (19)">West Bengal (19)</option>
+                                    <option value="Andaman and Nicobar Islands (35)">Andaman and Nicobar Islands (35)</option>
+                                    <option value="Chandigarh (04)">Chandigarh (04)</option>
+                                    <option value="Dadra and Nagar Haveli and Daman and Diu (26)">Dadra and Nagar Haveli and Daman and Diu (26)</option>
+                                    <option value="Delhi (07)">Delhi (07)</option>
+                                    <option value="Jammu and Kashmir (01)">Jammu and Kashmir (01)</option>
+                                    <option value="Ladakh (38)">Ladakh (38)</option>
+                                    <option value="Lakshadweep (31)">Lakshadweep (31)</option>
+                                    <option value="Puducherry (34)">Puducherry (34)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="shipping-pincode">Shipping Pincode</label>
+                                <input type="text" id="shipping-pincode">
+                            </div>
+                            <div class="form-group">
+                                <!-- Empty div for layout balance -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Bank Details (Optional) -->
                     <div class="form-section">
                         <h3>Bank Details <span class="optional">(Optional)</span></h3>
@@ -645,6 +726,132 @@
 
                 <div id="items-container-warehouse" class="items-container">
                     <!-- Items will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Customers Section -->
+            <div id="customers-section" class="customers-section hidden">
+                <div class="customers-header">
+                    <h2>Customer Management</h2>
+                    <div class="customers-actions">
+                        <div class="search-box">
+                            <input type="text" id="search-customers" placeholder="Search customers...">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <button id="add-customer-btn-customers" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Customer
+                        </button>
+                        <button id="back-to-generator-customers" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Generator
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Add/Edit Customer Modal -->
+                <div id="customer-modal" class="modal hidden">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2 id="customer-modal-title">Add New Customer</h2>
+                            <button class="close-modal" onclick="app.closeCustomerModal()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="customer-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="customer-name-modal">Customer Name *</label>
+                                        <input type="text" id="customer-name-modal" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="customer-email-modal">Email</label>
+                                        <input type="email" id="customer-email-modal">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="customer-phone-modal">Phone</label>
+                                        <input type="tel" id="customer-phone-modal">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="customer-gstin-modal">GSTIN *</label>
+                                        <input type="text" id="customer-gstin-modal" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label for="customer-address-modal">Address *</label>
+                                        <textarea id="customer-address-modal" rows="3" required></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="customer-city-modal">City *</label>
+                                        <input type="text" id="customer-city-modal" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="customer-state-modal">State *</label>
+                                        <select id="customer-state-modal" required>
+                                            <option value="">Select State</option>
+                                            <option value="Andhra Pradesh (37)">Andhra Pradesh (37)</option>
+                                            <option value="Arunachal Pradesh (12)">Arunachal Pradesh (12)</option>
+                                            <option value="Assam (18)">Assam (18)</option>
+                                            <option value="Bihar (10)">Bihar (10)</option>
+                                            <option value="Chhattisgarh (22)">Chhattisgarh (22)</option>
+                                            <option value="Goa (30)">Goa (30)</option>
+                                            <option value="Gujarat (24)">Gujarat (24)</option>
+                                            <option value="Haryana (06)">Haryana (06)</option>
+                                            <option value="Himachal Pradesh (02)">Himachal Pradesh (02)</option>
+                                            <option value="Jharkhand (20)">Jharkhand (20)</option>
+                                            <option value="Karnataka (29)">Karnataka (29)</option>
+                                            <option value="Kerala (32)">Kerala (32)</option>
+                                            <option value="Madhya Pradesh (23)">Madhya Pradesh (23)</option>
+                                            <option value="Maharashtra (27)">Maharashtra (27)</option>
+                                            <option value="Manipur (14)">Manipur (14)</option>
+                                            <option value="Meghalaya (17)">Meghalaya (17)</option>
+                                            <option value="Mizoram (15)">Mizoram (15)</option>
+                                            <option value="Nagaland (13)">Nagaland (13)</option>
+                                            <option value="Odisha (21)">Odisha (21)</option>
+                                            <option value="Punjab (03)">Punjab (03)</option>
+                                            <option value="Rajasthan (08)">Rajasthan (08)</option>
+                                            <option value="Sikkim (11)">Sikkim (11)</option>
+                                            <option value="Tamil Nadu (33)">Tamil Nadu (33)</option>
+                                            <option value="Telangana (36)">Telangana (36)</option>
+                                            <option value="Tripura (16)">Tripura (16)</option>
+                                            <option value="Uttar Pradesh (09)">Uttar Pradesh (09)</option>
+                                            <option value="Uttarakhand (05)">Uttarakhand (05)</option>
+                                            <option value="West Bengal (19)">West Bengal (19)</option>
+                                            <option value="Andaman and Nicobar Islands (35)">Andaman and Nicobar Islands (35)</option>
+                                            <option value="Chandigarh (04)">Chandigarh (04)</option>
+                                            <option value="Dadra and Nagar Haveli and Daman and Diu (26)">Dadra and Nagar Haveli and Daman and Diu (26)</option>
+                                            <option value="Delhi (07)">Delhi (07)</option>
+                                            <option value="Jammu and Kashmir (01)">Jammu and Kashmir (01)</option>
+                                            <option value="Ladakh (38)">Ladakh (38)</option>
+                                            <option value="Lakshadweep (31)">Lakshadweep (31)</option>
+                                            <option value="Puducherry (34)">Puducherry (34)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="customer-pincode-modal">Pincode</label>
+                                        <input type="text" id="customer-pincode-modal">
+                                    </div>
+                                    <div class="form-group">
+                                        <!-- Empty div for layout balance -->
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="button" class="btn btn-secondary" onclick="app.closeCustomerModal()">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Save Customer</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="customers-container-customers" class="customers-container">
+                    <!-- Customers will be loaded here -->
                 </div>
             </div>
         </main>

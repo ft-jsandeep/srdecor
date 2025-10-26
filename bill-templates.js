@@ -113,6 +113,8 @@ export class BillTemplates {
                     </div>
                 </div>
                 
+                ${this.renderShippingAddress(billData.shippingInfo)}
+                
                 <div class="bill-preview-items">
                     ${tableHeader}
                 </div>
@@ -166,9 +168,8 @@ export class BillTemplates {
                 row += `<td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${this.safeToFixed(item.cgst)}%</td>
                         <td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${this.safeToFixed(item.sgst)}%</td>`;
             } else {
-                // Different state: Show IGST
-                row += `<td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${this.safeToFixed(item.igst)}%</td>
-                        <td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">-</td>`;
+                // Different state: Show IGST only
+                row += `<td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${this.safeToFixed(item.igst)}%</td>`;
             }
             
             row += `<td style="padding: 3px; border: 1px solid #000; text-align: right; font-size: 10px;">₹${this.safeToFixed(item.taxAmount)}</td>
@@ -231,9 +232,8 @@ export class BillTemplates {
             tableHeader += `<th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">CGST%</th>
                             <th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">SGST%</th>`;
         } else {
-            // Different state: Show IGST column
-            tableHeader += `<th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">IGST%</th>
-                            <th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">-</th>`;
+            // Different state: Show IGST column only
+            tableHeader += `<th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">IGST%</th>`;
         }
         
         tableHeader += `<th style="padding: 3px; border: 1px solid #000; text-align: right; font-weight: bold; font-size: 10px;">Tax</th>
@@ -333,6 +333,8 @@ export class BillTemplates {
                     </div>
                 </div>
 
+                ${this.renderShippingAddress(billData.shippingInfo)}
+
                 <!-- Items Table -->
                 <div style="margin-bottom: 10px;">
                     ${tableHeader}
@@ -346,8 +348,7 @@ export class BillTemplates {
                 </div>
 
                 ${this.renderBankDetails(billData.bankDetails)}
-                ${this.renderTermsConditions(billData.termsConditions)}
-                ${this.renderAuthorizedSignatory()}
+                ${this.renderTermsAndSignatory(billData.termsConditions)}
             </div>
         `;
     }
@@ -424,6 +425,8 @@ export class BillTemplates {
                     </div>
                 </div>
                 
+                ${this.renderShippingAddress(billData.shippingInfo)}
+                
                 <div class="bill-preview-items">
                     ${tableHeader}
                 </div>
@@ -449,6 +452,26 @@ export class BillTemplates {
                 
                 ${this.renderBankDetails(billData.bankDetails)}
                 ${this.renderTermsConditions(billData.termsConditions)}
+            </div>
+        `;
+    }
+
+    static renderShippingAddress(shippingInfo) {
+        if (!shippingInfo || (!shippingInfo.name && !shippingInfo.address && !shippingInfo.city)) {
+            return '';
+        }
+
+        return `
+            <div style="margin-bottom: 10px;">
+                <h3 style="margin: 0 0 5px 0; font-size: 12px;">Ship To:</h3>
+                <div style="border: 1px solid #000; padding: 8px;">
+                    ${shippingInfo.name ? `<p style="margin: 0; font-weight: bold; font-size: 12px;">${this.safeString(shippingInfo.name)}</p>` : ''}
+                    ${shippingInfo.address ? `<p style="margin: 2px 0; font-size: 10px;">${this.safeString(shippingInfo.address)}</p>` : ''}
+                    ${shippingInfo.city ? `<p style="margin: 2px 0; font-size: 10px;">${this.safeString(shippingInfo.city)}</p>` : ''}
+                    ${shippingInfo.state ? `<p style="margin: 2px 0; font-size: 10px;">${this.safeString(shippingInfo.state).replace(/\s*\(\d+\)/, '')}</p>` : ''}
+                    ${shippingInfo.pincode ? `<p style="margin: 2px 0; font-size: 10px;">${this.safeString(shippingInfo.pincode)}</p>` : ''}
+                    ${shippingInfo.phone ? `<p style="margin: 2px 0; font-size: 10px;">Phone: ${this.safeString(shippingInfo.phone)}</p>` : ''}
+                </div>
             </div>
         `;
     }
@@ -497,6 +520,42 @@ export class BillTemplates {
                     </div>
                     <div style="text-align: right;">
                         <p style="margin: 0; border-top: 1px solid #000; padding-top: 3px; width: 150px; margin-left: auto; font-size: 10px;">Authorized Signature</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    static renderTermsAndSignatory(terms) {
+        const hasTerms = terms && terms.trim() !== '';
+        
+        return `
+            <div style="margin-bottom: 10px;">
+                <div style="display: flex; gap: 20px; align-items: flex-start;">
+                    <!-- Terms & Conditions Section -->
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <h3 style="margin: 0 0 5px 0; font-size: 12px;">Terms & Conditions:</h3>
+                        <div style="border: 1px solid #000; padding: 8px; flex: 1; min-height: 80px; display: flex; flex-direction: column;">
+                            ${hasTerms ? `
+                                <div style="white-space: pre-line; font-size: 10px; flex: 1;">${this.safeString(terms)}</div>
+                            ` : `
+                                <div style="flex: 1;"></div>
+                            `}
+                        </div>
+                    </div>
+                    
+                    <!-- Authorized Signatory Section -->
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <h3 style="margin: 0 0 5px 0; font-size: 12px;">Authorized Signatory:</h3>
+                        <div style="border: 1px solid #000; padding: 8px; flex: 1; min-height: 80px; display: flex; flex-direction: column; justify-content: space-between;">
+                            <div style="text-align: right;">
+                                <p style="margin: 0; font-weight: bold; font-size: 10px;">For S. R. Decor</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <hr style="margin: 0 0 5px 0; border: none; border-top: 1px solid #000; width: 150px; margin-left: auto;">
+                                <p style="margin: 0; font-size: 10px;">Authorized Signature</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

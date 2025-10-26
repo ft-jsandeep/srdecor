@@ -15,6 +15,7 @@ export class BillGeneratorApp {
         this.roundingAmount = 0;
         this.editingBillId = null; // Track if we're editing an existing bill
         this.editingItemId = null; // Track if we're editing an existing item
+        this.editingCustomerId = null; // Track if we're editing an existing customer
         
         // Wait for DOM to be ready
         if (document.readyState === 'loading') {
@@ -93,8 +94,10 @@ export class BillGeneratorApp {
             const newBillBtn = document.getElementById('new-bill-btn');
             const viewBillsBtn = document.getElementById('view-bills-btn');
             const warehouseBtn = document.getElementById('warehouse-btn');
+            const customersBtn = document.getElementById('customers-btn');
             const backToGenerator = document.getElementById('back-to-generator');
             const backToGeneratorWarehouse = document.getElementById('back-to-generator-warehouse');
+            const backToGeneratorCustomers = document.getElementById('back-to-generator-customers');
             const billForm = document.getElementById('bill-form');
             const addItemBtn = document.getElementById('add-item-btn');
             const templateSelect = document.getElementById('template-select');
@@ -109,6 +112,11 @@ export class BillGeneratorApp {
             const itemUnit = document.getElementById('item-unit');
             const searchItems = document.getElementById('search-items');
             
+            // Customers event listeners
+            const addCustomerBtnCustomers = document.getElementById('add-customer-btn-customers');
+            const customerForm = document.getElementById('customer-form');
+            const searchCustomers = document.getElementById('search-customers');
+            
             if (loginForm) loginForm.addEventListener('submit', (e) => this.handleLogin(e));
             if (registerForm) registerForm.addEventListener('submit', (e) => this.handleRegister(e));
             if (logoutBtn) logoutBtn.addEventListener('click', () => this.handleLogout());
@@ -122,8 +130,15 @@ export class BillGeneratorApp {
             } else {
                 console.error('Warehouse button not found!');
             }
+            if (customersBtn) {
+                console.log('Customers button found, adding event listener');
+                customersBtn.addEventListener('click', () => this.showCustomers());
+            } else {
+                console.error('Customers button not found!');
+            }
             if (backToGenerator) backToGenerator.addEventListener('click', () => this.showBillGenerator());
             if (backToGeneratorWarehouse) backToGeneratorWarehouse.addEventListener('click', () => this.showBillGenerator());
+            if (backToGeneratorCustomers) backToGeneratorCustomers.addEventListener('click', () => this.showBillGenerator());
             if (billForm) billForm.addEventListener('submit', (e) => this.handleBillSubmit(e));
             if (addItemBtn) addItemBtn.addEventListener('click', () => this.addItemRow());
             if (templateSelect) templateSelect.addEventListener('change', (e) => this.changeTemplate(e));
@@ -141,11 +156,22 @@ export class BillGeneratorApp {
             if (printBillBtn) printBillBtn.addEventListener('click', () => this.printBill());
             if (billDateInput) billDateInput.addEventListener('change', () => this.updateBillNumber());
             
+            // Customer name input for auto-fill
+            const customerNameInput = document.getElementById('customer-name');
+            if (customerNameInput) {
+                customerNameInput.addEventListener('input', (e) => this.handleCustomerNameInput(e));
+            }
+            
             // Warehouse event listeners
             if (addItemBtnWarehouse) addItemBtnWarehouse.addEventListener('click', () => this.showAddItemModal());
             if (itemForm) itemForm.addEventListener('submit', (e) => this.handleItemSubmit(e));
             if (itemUnit) itemUnit.addEventListener('change', (e) => this.handleItemUnitChange(e));
             if (searchItems) searchItems.addEventListener('input', () => this.filterItems());
+            
+            // Customers event listeners
+            if (addCustomerBtnCustomers) addCustomerBtnCustomers.addEventListener('click', () => this.showAddCustomerModal());
+            if (customerForm) customerForm.addEventListener('submit', (e) => this.handleCustomerSubmit(e));
+            if (searchCustomers) searchCustomers.addEventListener('input', () => this.filterCustomers());
             
             // Modal
             document.querySelectorAll('.close-modal').forEach(btn => {
@@ -391,20 +417,44 @@ export class BillGeneratorApp {
 
         const prefix = 'SR';
         const bills = this.billManager.getBills() || [];
-        // Find existing numbers for this FY and extract numeric sequence
+        
+        // Get current bill type
+        const billTypeEl = document.getElementById('bill-type');
+        const currentBillType = billTypeEl?.value || 'invoice';
+        
+        // Find existing numbers for this FY and bill type, extract numeric sequence
         let maxSeq = 0;
         bills.forEach(b => {
             const num = b.billNumber || '';
             const parts = num.split('/');
-            if (parts.length === 3 && parts[0] === prefix && parts[1] === fyString) {
-                const seq = parseInt(parts[2], 10);
-                if (!isNaN(seq)) {
-                    maxSeq = Math.max(maxSeq, seq);
+            
+            if (currentBillType === 'estimate') {
+                // For estimates: SR/ES/2025-26/1
+                if (parts.length === 4 && parts[0] === prefix && parts[1] === 'ES' && parts[2] === fyString) {
+                    const seq = parseInt(parts[3], 10);
+                    if (!isNaN(seq)) {
+                        maxSeq = Math.max(maxSeq, seq);
+                    }
+                }
+            } else {
+                // For invoices: SR/2025-26/1
+                if (parts.length === 3 && parts[0] === prefix && parts[1] === fyString) {
+                    const seq = parseInt(parts[2], 10);
+                    if (!isNaN(seq)) {
+                        maxSeq = Math.max(maxSeq, seq);
+                    }
                 }
             }
         });
+        
         const nextSeq = (maxSeq || 0) + 1;
-        billNumberInput.value = `${prefix}/${fyString}/${nextSeq}`;
+        
+        // Generate bill number based on type
+        if (currentBillType === 'estimate') {
+            billNumberInput.value = `${prefix}/ES/${fyString}/${nextSeq}`;
+        } else {
+            billNumberInput.value = `${prefix}/${fyString}/${nextSeq}`;
+        }
     }
 
     changeTemplate(e) {
@@ -476,8 +526,9 @@ export class BillGeneratorApp {
         if (mainApp) mainApp.classList.remove('hidden');
         if (authSection) authSection.classList.add('hidden');
         
-        // Ensure warehouse button has event listener
+        // Ensure warehouse and customers buttons have event listeners
         this.ensureWarehouseButtonSetup();
+        this.ensureCustomersButtonSetup();
         
         // Show bill generator by default
         this.showBillGenerator();
@@ -492,13 +543,24 @@ export class BillGeneratorApp {
         }
     }
 
+    ensureCustomersButtonSetup() {
+        const customersBtn = document.getElementById('customers-btn');
+        if (customersBtn && !customersBtn.hasAttribute('data-listener-added')) {
+            console.log('Setting up customers button event listener');
+            customersBtn.addEventListener('click', () => this.showCustomers());
+            customersBtn.setAttribute('data-listener-added', 'true');
+        }
+    }
+
     showBillGenerator() {
         const billsList = document.getElementById('bills-list');
         const billGenerator = document.getElementById('bill-generator');
         const warehouseSection = document.getElementById('warehouse-section');
+        const customersSection = document.getElementById('customers-section');
         if (billsList) billsList.classList.add('hidden');
         if (billGenerator) billGenerator.classList.remove('hidden');
         if (warehouseSection) warehouseSection.classList.add('hidden');
+        if (customersSection) customersSection.classList.add('hidden');
         this.currentView = 'generator';
         
         // Only populate default business info if we're not editing
@@ -520,9 +582,11 @@ export class BillGeneratorApp {
         const billsList = document.getElementById('bills-list');
         const billGenerator = document.getElementById('bill-generator');
         const warehouseSection = document.getElementById('warehouse-section');
+        const customersSection = document.getElementById('customers-section');
         if (billsList) billsList.classList.remove('hidden');
         if (billGenerator) billGenerator.classList.add('hidden');
         if (warehouseSection) warehouseSection.classList.add('hidden');
+        if (customersSection) customersSection.classList.add('hidden');
         this.currentView = 'bills';
         // Load and display bills when showing the bills list
         this.loadBills();
@@ -533,12 +597,29 @@ export class BillGeneratorApp {
         const billsList = document.getElementById('bills-list');
         const billGenerator = document.getElementById('bill-generator');
         const warehouseSection = document.getElementById('warehouse-section');
+        const customersSection = document.getElementById('customers-section');
         if (billsList) billsList.classList.add('hidden');
         if (billGenerator) billGenerator.classList.add('hidden');
         if (warehouseSection) warehouseSection.classList.remove('hidden');
+        if (customersSection) customersSection.classList.add('hidden');
         this.currentView = 'warehouse';
         // Load and display items when showing the warehouse
         this.loadWarehouseItems();
+    }
+
+    showCustomers() {
+        console.log('showCustomers called');
+        const billsList = document.getElementById('bills-list');
+        const billGenerator = document.getElementById('bill-generator');
+        const warehouseSection = document.getElementById('warehouse-section');
+        const customersSection = document.getElementById('customers-section');
+        if (billsList) billsList.classList.add('hidden');
+        if (billGenerator) billGenerator.classList.add('hidden');
+        if (warehouseSection) warehouseSection.classList.add('hidden');
+        if (customersSection) customersSection.classList.remove('hidden');
+        this.currentView = 'customers';
+        // Load and display customers when showing the customers section
+        this.loadCustomersList();
     }
 
     populateDefaultBusinessInfo() {
@@ -857,6 +938,15 @@ export class BillGeneratorApp {
             gstin: document.getElementById('customer-gstin')?.value || ''
         };
         
+        const shippingInfo = {
+            name: document.getElementById('shipping-name')?.value || '',
+            phone: document.getElementById('shipping-phone')?.value || '',
+            address: document.getElementById('shipping-address')?.value || '',
+            city: document.getElementById('shipping-city')?.value || '',
+            state: document.getElementById('shipping-state')?.value || '',
+            pincode: document.getElementById('shipping-pincode')?.value || ''
+        };
+        
         const bankDetails = {
             accountHolderName: document.getElementById('account-holder-name')?.value || '',
             bankName: document.getElementById('bank-name')?.value || '',
@@ -905,6 +995,7 @@ export class BillGeneratorApp {
             billNumber: document.getElementById('bill-number')?.value || '',
             businessInfo,
             customerInfo,
+            shippingInfo,
             bankDetails,
             items,
             billDate: document.getElementById('bill-date')?.value || new Date().toISOString().split('T')[0],
@@ -1049,6 +1140,34 @@ export class BillGeneratorApp {
             if (hsnEl) hsnEl.value = item.hsn || '';
         }
     }
+
+    handleCustomerNameInput(e) {
+        const input = e.target;
+        const customerName = input.value.trim();
+        
+        if (customerName) {
+            const customer = this.billManager.findCustomerByName(customerName);
+            if (customer) {
+                // Auto-fill customer information
+                const emailInput = document.getElementById('customer-email');
+                const phoneInput = document.getElementById('customer-phone');
+                const addressInput = document.getElementById('customer-address');
+                const cityInput = document.getElementById('customer-city');
+                const stateInput = document.getElementById('customer-state');
+                const pincodeInput = document.getElementById('customer-pincode');
+                const gstinInput = document.getElementById('customer-gstin');
+                
+                if (emailInput) emailInput.value = customer.email || '';
+                if (phoneInput) phoneInput.value = customer.phone || '';
+                if (addressInput) addressInput.value = customer.address || '';
+                if (cityInput) cityInput.value = customer.city || '';
+                if (stateInput) stateInput.value = customer.state || '';
+                if (pincodeInput) pincodeInput.value = customer.pincode || '';
+                if (gstinInput) gstinInput.value = customer.gstin || '';
+            }
+        }
+    }
+
     async loadBills() {
         try {
             console.log('Loading bills...');
@@ -1357,6 +1476,21 @@ export class BillGeneratorApp {
         if (customerState) customerState.value = bill.customerInfo.state || '';
         if (customerPincode) customerPincode.value = bill.customerInfo.pincode || '';
         if (customerGstin) customerGstin.value = bill.customerInfo.gstin || '';
+        
+        // Populate shipping info
+        const shippingName = document.getElementById('shipping-name');
+        const shippingPhone = document.getElementById('shipping-phone');
+        const shippingAddress = document.getElementById('shipping-address');
+        const shippingCity = document.getElementById('shipping-city');
+        const shippingState = document.getElementById('shipping-state');
+        const shippingPincode = document.getElementById('shipping-pincode');
+        
+        if (shippingName) shippingName.value = bill.shippingInfo?.name || '';
+        if (shippingPhone) shippingPhone.value = bill.shippingInfo?.phone || '';
+        if (shippingAddress) shippingAddress.value = bill.shippingInfo?.address || '';
+        if (shippingCity) shippingCity.value = bill.shippingInfo?.city || '';
+        if (shippingState) shippingState.value = bill.shippingInfo?.state || '';
+        if (shippingPincode) shippingPincode.value = bill.shippingInfo?.pincode || '';
         
         // Populate bank details
         const bankName = document.getElementById('bank-name');
@@ -1793,6 +1927,243 @@ export class BillGeneratorApp {
         this.editingItemId = null;
     }
 
+    // ===============================
+    // Customer Management Methods
+    // ===============================
+    
+    async loadCustomersList() {
+        try {
+            await this.billManager.loadCustomers();
+            this.displayCustomersList();
+        } catch (error) {
+            console.error('Error loading customers list:', error);
+            this.showMessage(error.message, 'error');
+        }
+    }
+
+    displayCustomersList() {
+        const customersContainer = document.getElementById('customers-container-customers');
+        if (!customersContainer) {
+            console.error('Customers container not found!');
+            return;
+        }
+        
+        const customers = this.billManager.getCustomers();
+        console.log('Displaying customers list:', customers);
+        
+        customersContainer.innerHTML = '';
+        
+        if (customers.length === 0) {
+            console.log('No customers found, showing empty message');
+            customersContainer.innerHTML = '<p class="text-center">No customers found. Add your first customer!</p>';
+            return;
+        }
+        
+        customers.forEach(customer => {
+            const customerCard = document.createElement('div');
+            customerCard.className = 'customer-card';
+            customerCard.innerHTML = `
+                <div class="customer-header">
+                    <div class="customer-info">
+                        <h3>${customer.name}</h3>
+                        <p>GSTIN: ${customer.gstin}</p>
+                    </div>
+                    <div class="customer-location">${customer.city}, ${customer.state}</div>
+                </div>
+                <div class="customer-details">
+                    <div class="customer-detail">
+                        <label>Email</label>
+                        <span>${customer.email || 'N/A'}</span>
+                    </div>
+                    <div class="customer-detail">
+                        <label>Phone</label>
+                        <span>${customer.phone || 'N/A'}</span>
+                    </div>
+                    <div class="customer-detail">
+                        <label>Address</label>
+                        <span>${customer.address}</span>
+                    </div>
+                    <div class="customer-detail">
+                        <label>Pincode</label>
+                        <span>${customer.pincode || 'N/A'}</span>
+                    </div>
+                </div>
+                <div class="customer-actions">
+                    <button class="btn btn-primary btn-sm edit-customer-btn" data-customer-id="${customer.id}">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-danger btn-sm delete-customer-btn" data-customer-id="${customer.id}">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            `;
+            
+            customersContainer.appendChild(customerCard);
+        });
+        
+        // Add event listeners to the new buttons
+        this.setupCustomerActionListeners();
+    }
+
+    setupCustomerActionListeners() {
+        // Edit buttons
+        document.querySelectorAll('.edit-customer-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const customerId = e.target.closest('.edit-customer-btn').dataset.customerId;
+                this.editCustomer(customerId);
+            });
+        });
+        
+        // Delete buttons
+        document.querySelectorAll('.delete-customer-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const customerId = e.target.closest('.delete-customer-btn').dataset.customerId;
+                this.deleteCustomer(customerId);
+            });
+        });
+    }
+
+    showAddCustomerModal() {
+        this.editingCustomerId = null;
+        const modal = document.getElementById('customer-modal');
+        const modalTitle = document.getElementById('customer-modal-title');
+        const customerForm = document.getElementById('customer-form');
+        
+        if (modalTitle) modalTitle.textContent = 'Add New Customer';
+        if (customerForm) customerForm.reset();
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    editCustomer(customerId) {
+        const customer = this.billManager.findCustomerById(customerId);
+        if (customer) {
+            this.editingCustomerId = customerId;
+            const modal = document.getElementById('customer-modal');
+            const modalTitle = document.getElementById('customer-modal-title');
+            
+            if (modalTitle) modalTitle.textContent = 'Edit Customer';
+            if (modal) modal.classList.remove('hidden');
+            
+            // Populate form with customer data
+            this.populateCustomerForm(customer);
+        } else {
+            this.showMessage('Customer not found', 'error');
+        }
+    }
+
+    populateCustomerForm(customer) {
+        const nameField = document.getElementById('customer-name-modal');
+        const emailField = document.getElementById('customer-email-modal');
+        const phoneField = document.getElementById('customer-phone-modal');
+        const gstinField = document.getElementById('customer-gstin-modal');
+        const addressField = document.getElementById('customer-address-modal');
+        const cityField = document.getElementById('customer-city-modal');
+        const stateField = document.getElementById('customer-state-modal');
+        const pincodeField = document.getElementById('customer-pincode-modal');
+        
+        if (nameField) nameField.value = customer.name || '';
+        if (emailField) emailField.value = customer.email || '';
+        if (phoneField) phoneField.value = customer.phone || '';
+        if (gstinField) gstinField.value = customer.gstin || '';
+        if (addressField) addressField.value = customer.address || '';
+        if (cityField) cityField.value = customer.city || '';
+        if (stateField) stateField.value = customer.state || '';
+        if (pincodeField) pincodeField.value = customer.pincode || '';
+    }
+
+    async handleCustomerSubmit(e) {
+        e.preventDefault();
+        
+        try {
+            const customerData = this.collectCustomerData();
+            
+            if (this.editingCustomerId) {
+                // Update existing customer
+                await this.billManager.updateCustomer(this.editingCustomerId, customerData);
+                this.showMessage('Customer updated successfully!', 'success');
+                this.editingCustomerId = null;
+            } else {
+                // Create new customer
+                await this.billManager.saveCustomer(customerData);
+                this.showMessage('Customer added successfully!', 'success');
+            }
+            
+            this.closeCustomerModal();
+            this.loadCustomersList();
+            // Refresh customers datalist for bill creation
+            this.populateDatalists();
+        } catch (error) {
+            this.showMessage(error.message, 'error');
+        }
+    }
+
+    collectCustomerData() {
+        return {
+            name: document.getElementById('customer-name-modal')?.value || '',
+            email: document.getElementById('customer-email-modal')?.value || '',
+            phone: document.getElementById('customer-phone-modal')?.value || '',
+            gstin: document.getElementById('customer-gstin-modal')?.value || '',
+            address: document.getElementById('customer-address-modal')?.value || '',
+            city: document.getElementById('customer-city-modal')?.value || '',
+            state: document.getElementById('customer-state-modal')?.value || '',
+            pincode: document.getElementById('customer-pincode-modal')?.value || ''
+        };
+    }
+
+    async deleteCustomer(customerId) {
+        if (confirm('Are you sure you want to delete this customer?')) {
+            try {
+                await this.billManager.deleteCustomer(customerId);
+                this.showMessage('Customer deleted successfully', 'success');
+                this.loadCustomersList();
+                // Refresh customers datalist for bill creation
+                this.populateDatalists();
+            } catch (error) {
+                this.showMessage(error.message, 'error');
+            }
+        }
+    }
+
+    filterCustomers() {
+        const searchTerm = document.getElementById('search-customers')?.value || '';
+        const customers = this.billManager.getCustomers();
+        
+        const customersContainer = document.getElementById('customers-container-customers');
+        if (!customersContainer) return;
+        
+        const customerCards = customersContainer.querySelectorAll('.customer-card');
+        
+        if (!searchTerm) {
+            // Show all customers
+            customerCards.forEach(card => card.style.display = 'block');
+            return;
+        }
+        
+        const term = searchTerm.toLowerCase();
+        const filteredCustomers = customers.filter(customer => 
+            customer.name.toLowerCase().includes(term) ||
+            customer.gstin.toLowerCase().includes(term) ||
+            customer.email.toLowerCase().includes(term) ||
+            customer.phone.toLowerCase().includes(term) ||
+            customer.city.toLowerCase().includes(term) ||
+            customer.state.toLowerCase().includes(term)
+        );
+        
+        customerCards.forEach((card, index) => {
+            if (index < filteredCustomers.length) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    closeCustomerModal() {
+        const modal = document.getElementById('customer-modal');
+        if (modal) modal.classList.add('hidden');
+        this.editingCustomerId = null;
+    }
+
     // Utility functions
     formatDate(date) {
         if (!date) return 'N/A';
@@ -1856,6 +2227,15 @@ window.switchTab = function(tab) {
 window.showWarehouse = function() {
     if (window.app) {
         window.app.showWarehouse();
+    } else {
+        console.error('App not available');
+    }
+};
+
+// Global function for customers button (backup)
+window.showCustomers = function() {
+    if (window.app) {
+        window.app.showCustomers();
     } else {
         console.error('App not available');
     }
