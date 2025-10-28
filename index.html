@@ -287,7 +287,45 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="place-of-supply">Place of Supply</label>
-                                <input type="text" id="place-of-supply" value="Haryana (06)">
+                                <select id="place-of-supply" required>
+                                    <option value="">Select Place of Supply</option>
+                                    <option value="Andhra Pradesh (37)">Andhra Pradesh (37)</option>
+                                    <option value="Arunachal Pradesh (12)">Arunachal Pradesh (12)</option>
+                                    <option value="Assam (18)">Assam (18)</option>
+                                    <option value="Bihar (10)">Bihar (10)</option>
+                                    <option value="Chhattisgarh (22)">Chhattisgarh (22)</option>
+                                    <option value="Goa (30)">Goa (30)</option>
+                                    <option value="Gujarat (24)">Gujarat (24)</option>
+                                    <option value="Haryana (06)" selected>Haryana (06)</option>
+                                    <option value="Himachal Pradesh (02)">Himachal Pradesh (02)</option>
+                                    <option value="Jharkhand (20)">Jharkhand (20)</option>
+                                    <option value="Karnataka (29)">Karnataka (29)</option>
+                                    <option value="Kerala (32)">Kerala (32)</option>
+                                    <option value="Madhya Pradesh (23)">Madhya Pradesh (23)</option>
+                                    <option value="Maharashtra (27)">Maharashtra (27)</option>
+                                    <option value="Manipur (14)">Manipur (14)</option>
+                                    <option value="Meghalaya (17)">Meghalaya (17)</option>
+                                    <option value="Mizoram (15)">Mizoram (15)</option>
+                                    <option value="Nagaland (13)">Nagaland (13)</option>
+                                    <option value="Odisha (21)">Odisha (21)</option>
+                                    <option value="Punjab (03)">Punjab (03)</option>
+                                    <option value="Rajasthan (08)">Rajasthan (08)</option>
+                                    <option value="Sikkim (11)">Sikkim (11)</option>
+                                    <option value="Tamil Nadu (33)">Tamil Nadu (33)</option>
+                                    <option value="Telangana (36)">Telangana (36)</option>
+                                    <option value="Tripura (16)">Tripura (16)</option>
+                                    <option value="Uttar Pradesh (09)">Uttar Pradesh (09)</option>
+                                    <option value="Uttarakhand (05)">Uttarakhand (05)</option>
+                                    <option value="West Bengal (19)">West Bengal (19)</option>
+                                    <option value="Andaman and Nicobar Islands (35)">Andaman and Nicobar Islands (35)</option>
+                                    <option value="Chandigarh (04)">Chandigarh (04)</option>
+                                    <option value="Dadra and Nagar Haveli and Daman and Diu (26)">Dadra and Nagar Haveli and Daman and Diu (26)</option>
+                                    <option value="Delhi (07)">Delhi (07)</option>
+                                    <option value="Jammu and Kashmir (01)">Jammu and Kashmir (01)</option>
+                                    <option value="Ladakh (38)">Ladakh (38)</option>
+                                    <option value="Lakshadweep (31)">Lakshadweep (31)</option>
+                                    <option value="Puducherry (34)">Puducherry (34)</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <!-- Empty div for layout balance -->
@@ -713,6 +751,16 @@
                                     <div class="form-group">
                                         <label for="item-price">Default Price *</label>
                                         <input type="number" id="item-price" min="0" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="item-default-tax">Default Tax %</label>
+                                        <input type="number" id="item-default-tax" min="0" max="100" step="0.01" placeholder="e.g., 18">
+                                        <small class="form-help">This tax will be automatically applied when adding this item to bills</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <!-- Empty div for layout balance -->
                                     </div>
                                 </div>
                                 <div class="form-actions">

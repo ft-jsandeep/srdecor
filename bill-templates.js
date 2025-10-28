@@ -2,6 +2,7 @@
 export class BillTemplates {
     static generateBillPreview(billData, template = 'default') {
         console.log('generateBillPreview called with billData:', billData);
+        console.log('Place of Supply in billData:', billData.placeOfSupply);
         console.log('roundingAmount in billData:', billData.roundingAmount);
         switch (template) {
             case 'est-rt':
@@ -109,6 +110,7 @@ export class BillTemplates {
                         <p><strong>Type:</strong> ${billData.billType === 'estimate' ? 'Estimate' : 'Invoice'}</p>
                         <p><strong>Number:</strong> ${this.safeString(billData.billNumber)}</p>
                         <p><strong>Date:</strong> ${this.formatDate(billData.billDate)}</p>
+                        <p><strong>Place of Supply:</strong> ${this.safeString(billData.placeOfSupply, 'Haryana (06)')}</p>
                         <p><strong>Total:</strong> ₹${this.safeToFixed(billData.total)}</p>
                     </div>
                 </div>
@@ -421,6 +423,7 @@ export class BillTemplates {
                         <p><strong>Type:</strong> ${billData.billType === 'estimate' ? 'Estimate' : 'Invoice'}</p>
                         <p><strong>Number:</strong> ${this.safeString(billData.billNumber)}</p>
                         <p><strong>Date:</strong> ${this.formatDate(billData.billDate)}</p>
+                        <p><strong>Place of Supply:</strong> ${this.safeString(billData.placeOfSupply, 'Haryana (06)')}</p>
                         <p><strong>Total:</strong> ₹${this.safeToFixed(billData.total)}</p>
                     </div>
                 </div>

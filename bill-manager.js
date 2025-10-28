@@ -24,17 +24,32 @@ export class BillManager {
     // ===============================
     async saveItem(item) {
         if (!this.currentUser) throw new Error('Please log in to save items');
+        
+        console.log('saveItem called with item:', item);
+        
         const payload = {
             userId: this.currentUser.uid,
             name: item.name?.trim() || '',
             hsn: item.hsn?.trim() || '',
             defaultRate: Number(item.defaultRate) || 0,
             defaultUnit: item.defaultUnit || 'pcs',
+            defaultTax: Number(item.defaultTax) || 0,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         };
-        const ref = await addDoc(collection(db, 'items'), payload);
-        return ref.id;
+        
+        console.log('Saving item with payload:', payload);
+        console.log('Default tax value being saved:', payload.defaultTax);
+        console.log('Default tax type:', typeof payload.defaultTax);
+        
+        try {
+            const ref = await addDoc(collection(db, 'items'), payload);
+            console.log('Item saved successfully with ID:', ref.id);
+            return ref.id;
+        } catch (error) {
+            console.error('Error in saveItem:', error);
+            throw error;
+        }
     }
 
     async loadItems() {
@@ -45,7 +60,11 @@ export class BillManager {
         );
         const snapshot = await getDocs(q);
         this.items = [];
-        snapshot.forEach(d => this.items.push({ id: d.id, ...d.data() }));
+        snapshot.forEach(d => {
+            const itemData = { id: d.id, ...d.data() };
+            console.log('Loaded item from DB:', itemData);
+            this.items.push(itemData);
+        });
         // sort by name asc for dropdowns
         this.items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         return this.items;
@@ -67,8 +86,13 @@ export class BillManager {
             hsn: itemData.hsn?.trim() || '',
             defaultRate: Number(itemData.defaultRate) || 0,
             defaultUnit: itemData.defaultUnit || 'pcs',
+            defaultTax: Number(itemData.defaultTax) || 0,
             updatedAt: serverTimestamp()
         };
+        
+        console.log('Updating item with payload:', payload);
+        console.log('Default tax value being updated:', payload.defaultTax);
+        
         await updateDoc(doc(db, 'items', itemId), payload);
         
         // Update local array

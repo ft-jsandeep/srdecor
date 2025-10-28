@@ -111,6 +111,8 @@ export class BillGeneratorApp {
             const itemForm = document.getElementById('item-form');
             const itemUnit = document.getElementById('item-unit');
             const searchItems = document.getElementById('search-items');
+            console.log('Search items element found:', searchItems);
+            console.log('Search items element visibility:', searchItems ? window.getComputedStyle(searchItems).display : 'N/A');
             
             // Customers event listeners
             const addCustomerBtnCustomers = document.getElementById('add-customer-btn-customers');
@@ -166,7 +168,15 @@ export class BillGeneratorApp {
             if (addItemBtnWarehouse) addItemBtnWarehouse.addEventListener('click', () => this.showAddItemModal());
             if (itemForm) itemForm.addEventListener('submit', (e) => this.handleItemSubmit(e));
             if (itemUnit) itemUnit.addEventListener('change', (e) => this.handleItemUnitChange(e));
-            if (searchItems) searchItems.addEventListener('input', () => this.filterItems());
+            if (searchItems) {
+                console.log('Adding event listener to search items input');
+                searchItems.addEventListener('input', () => {
+                    console.log('Search input event triggered');
+                    this.filterItems();
+                });
+            } else {
+                console.error('Search items element not found!');
+            }
             
             // Customers event listeners
             if (addCustomerBtnCustomers) addCustomerBtnCustomers.addEventListener('click', () => this.showAddCustomerModal());
@@ -603,6 +613,10 @@ export class BillGeneratorApp {
         if (warehouseSection) warehouseSection.classList.remove('hidden');
         if (customersSection) customersSection.classList.add('hidden');
         this.currentView = 'warehouse';
+        
+        // Ensure search functionality is set up
+        this.setupSearchFunctionality();
+        
         // Load and display items when showing the warehouse
         this.loadWarehouseItems();
     }
@@ -643,6 +657,15 @@ export class BillGeneratorApp {
             if (businessPan && parsedSettings['default-business-pan']) businessPan.value = parsedSettings['default-business-pan'];
             if (businessState && parsedSettings['default-business-state']) businessState.value = parsedSettings['default-business-state'];
             if (businessAddress && parsedSettings['default-business-address']) businessAddress.value = parsedSettings['default-business-address'];
+            
+            // Handle place of supply if there's a default setting
+            const placeOfSupply = document.getElementById('place-of-supply');
+            if (placeOfSupply && parsedSettings['default-place-of-supply']) {
+                console.log('Setting Place of Supply from settings:', parsedSettings['default-place-of-supply']);
+                placeOfSupply.value = parsedSettings['default-place-of-supply'];
+            } else if (placeOfSupply) {
+                console.log('No default place of supply setting found, current value:', placeOfSupply.value);
+            }
             
             // Populate bank details if available
             const bankName = document.getElementById('bank-name');
@@ -759,6 +782,9 @@ export class BillGeneratorApp {
         `;
         
         itemsContainer.appendChild(itemRow);
+        
+        // Update tax fields visibility for the new row
+        this.updateTaxFields();
     }
 
     handleUnitChange(e) {
@@ -990,9 +1016,17 @@ export class BillGeneratorApp {
         console.log('Collecting bill data - roundingAmount:', this.roundingAmount);
         console.log('Collecting bill data - subtotal:', subtotal, 'totalTax:', totalTax, 'total:', total);
         
+        const placeOfSupplyElement = document.getElementById('place-of-supply');
+        const placeOfSupplyValue = placeOfSupplyElement?.value || 'Haryana (06)';
+        console.log('Place of Supply element:', placeOfSupplyElement);
+        console.log('Place of Supply value being collected:', placeOfSupplyValue);
+        console.log('Place of Supply selectedIndex:', placeOfSupplyElement?.selectedIndex);
+        console.log('Place of Supply options:', placeOfSupplyElement?.options);
+        
         const billData = {
             billType: this.billType,
             billNumber: document.getElementById('bill-number')?.value || '',
+            placeOfSupply: placeOfSupplyValue,
             businessInfo,
             customerInfo,
             shippingInfo,
@@ -1045,10 +1079,20 @@ export class BillGeneratorApp {
         const billDate = document.getElementById('bill-date');
         const itemsContainer = document.getElementById('items-container');
         const billNumber = document.getElementById('bill-number');
+        const placeOfSupply = document.getElementById('place-of-supply');
         
         if (billForm) billForm.reset();
         if (billDate) billDate.value = new Date().toISOString().split('T')[0];
         if (billNumber) billNumber.value = '';
+        
+        // Set place of supply after form reset to ensure it's not overridden
+        setTimeout(() => {
+            if (placeOfSupply) {
+                console.log('Setting Place of Supply to default after form reset');
+                placeOfSupply.value = 'Haryana (06)';
+                console.log('Place of Supply value after setting:', placeOfSupply.value);
+            }
+        }, 0);
         
         if (itemsContainer) {
             itemsContainer.innerHTML = '';
@@ -1116,6 +1160,10 @@ export class BillGeneratorApp {
             const unitSel = row.querySelector('.item-unit');
             const customUnitEl = row.querySelector('.item-custom-unit');
             const hsnEl = row.querySelector('.item-hsn');
+            const cgstEl = row.querySelector('.item-cgst');
+            const sgstEl = row.querySelector('.item-sgst');
+            const igstEl = row.querySelector('.item-igst');
+            
             if (rateEl) rateEl.value = item.defaultRate || 0;
             if (unitSel) {
                 const unit = item.defaultUnit || 'pcs';
@@ -1138,6 +1186,19 @@ export class BillGeneratorApp {
                 }
             }
             if (hsnEl) hsnEl.value = item.hsn || '';
+            
+            // Set default tax values
+            // Use item's default tax if available, otherwise default to 18%
+            const defaultTax = item.defaultTax && item.defaultTax > 0 ? item.defaultTax : 18;
+            if (cgstEl) cgstEl.value = defaultTax / 2; // CGST is half of total tax
+            if (sgstEl) sgstEl.value = defaultTax / 2; // SGST is half of total tax
+            if (igstEl) igstEl.value = defaultTax; // IGST is full tax
+            
+            // Update tax fields visibility after setting values
+            this.updateTaxFields();
+            
+            // Trigger calculation
+            this.calculateItemAmount(e);
         }
     }
 
@@ -1441,7 +1502,11 @@ export class BillGeneratorApp {
         if (billDate) billDate.value = bill.billDate;
         
         const placeOfSupply = document.getElementById('place-of-supply');
-        if (placeOfSupply) placeOfSupply.value = bill.placeOfSupply || 'Haryana (06)';
+        if (placeOfSupply) {
+            const placeOfSupplyValue = bill.placeOfSupply || 'Haryana (06)';
+            console.log('Setting Place of Supply to:', placeOfSupplyValue);
+            placeOfSupply.value = placeOfSupplyValue;
+        }
         
         // Populate business info
         const businessName = document.getElementById('business-name');
@@ -1619,6 +1684,7 @@ export class BillGeneratorApp {
 
     generateBillPreview(billData) {
         console.log('generateBillPreview called with:', billData);
+        console.log('Place of Supply in billData:', billData.placeOfSupply);
         console.log('Rounding amount in billData:', billData.roundingAmount);
         console.log('Current this.roundingAmount:', this.roundingAmount);
         const previewContent = document.getElementById('bill-preview-content');
@@ -1683,6 +1749,24 @@ export class BillGeneratorApp {
     // ===============================
     // Warehouse Management Methods
     // ===============================
+    
+    setupSearchFunctionality() {
+        const searchItems = document.getElementById('search-items');
+        if (searchItems) {
+            // Remove any existing event listeners to avoid duplicates
+            const newSearchItems = searchItems.cloneNode(true);
+            searchItems.parentNode.replaceChild(newSearchItems, searchItems);
+            
+            // Add the event listener to the new element
+            newSearchItems.addEventListener('input', () => {
+                console.log('Search input event triggered');
+                this.filterItems();
+            });
+            console.log('Search functionality set up successfully');
+        } else {
+            console.error('Search items element not found in setupSearchFunctionality');
+        }
+    }
     
     async loadWarehouseItems() {
         try {
@@ -1802,10 +1886,12 @@ export class BillGeneratorApp {
         const unitField = document.getElementById('item-unit');
         const customUnitField = document.getElementById('item-custom-unit');
         const priceField = document.getElementById('item-price');
+        const defaultTaxField = document.getElementById('item-default-tax');
         
         if (nameField) nameField.value = item.name || '';
         if (hsnField) hsnField.value = item.hsn || '';
         if (priceField) priceField.value = item.defaultRate || 0;
+        if (defaultTaxField) defaultTaxField.value = item.defaultTax || 0;
         
         if (unitField && customUnitField) {
             const unit = item.defaultUnit || 'pcs';
@@ -1826,17 +1912,40 @@ export class BillGeneratorApp {
     async handleItemSubmit(e) {
         e.preventDefault();
         
+        // Test if the field exists at form submission time
+        const testField = document.getElementById('item-default-tax');
+        console.log('Form submission - Default tax field exists:', !!testField);
+        console.log('Form submission - Default tax field value:', testField?.value);
+        
+        // Try to find the field by searching for it
+        const allInputs = document.querySelectorAll('input');
+        console.log('All input fields found:', allInputs.length);
+        allInputs.forEach((input, index) => {
+            console.log(`Input ${index}: id="${input.id}", type="${input.type}", value="${input.value}"`);
+        });
+        
+        // Try to find by name or other attributes
+        const taxInputs = document.querySelectorAll('input[type="number"]');
+        console.log('All number inputs found:', taxInputs.length);
+        taxInputs.forEach((input, index) => {
+            console.log(`Number input ${index}: id="${input.id}", value="${input.value}"`);
+        });
+        
         try {
             const itemData = this.collectItemData();
+            console.log('About to save item data:', itemData);
             
             if (this.editingItemId) {
                 // Update existing item
+                console.log('Updating existing item with ID:', this.editingItemId);
                 await this.billManager.updateItem(this.editingItemId, itemData);
                 this.showMessage('Item updated successfully!', 'success');
                 this.editingItemId = null;
             } else {
                 // Create new item
-                await this.billManager.saveItem(itemData);
+                console.log('Creating new item...');
+                const itemId = await this.billManager.saveItem(itemData);
+                console.log('Item created with ID:', itemId);
                 this.showMessage('Item added successfully!', 'success');
             }
             
@@ -1845,6 +1954,7 @@ export class BillGeneratorApp {
             // Refresh items datalist for bill creation
             this.populateDatalists();
         } catch (error) {
+            console.error('Error saving item:', error);
             this.showMessage(error.message, 'error');
         }
     }
@@ -1852,13 +1962,45 @@ export class BillGeneratorApp {
     collectItemData() {
         const unitField = document.getElementById('item-unit');
         const customUnitField = document.getElementById('item-custom-unit');
+        const defaultTaxField = document.getElementById('item-default-tax');
         
-        return {
+        // Debug: Check if the field exists
+        console.log('Default tax field element:', defaultTaxField);
+        console.log('Default tax field value (raw):', defaultTaxField?.value);
+        console.log('Default tax field value (type):', typeof defaultTaxField?.value);
+        
+        // Check all form fields to see what's available
+        console.log('All form fields:');
+        console.log('- item-name:', document.getElementById('item-name')?.value);
+        console.log('- item-hsn:', document.getElementById('item-hsn')?.value);
+        console.log('- item-price:', document.getElementById('item-price')?.value);
+        console.log('- item-unit:', document.getElementById('item-unit')?.value);
+        console.log('- item-default-tax:', document.getElementById('item-default-tax')?.value);
+        
+        const itemData = {
             name: document.getElementById('item-name')?.value || '',
             hsn: document.getElementById('item-hsn')?.value || '',
             defaultRate: parseFloat(document.getElementById('item-price')?.value) || 0,
-            defaultUnit: unitField?.value === 'custom' ? customUnitField?.value : unitField?.value || 'pcs'
+            defaultUnit: unitField?.value === 'custom' ? customUnitField?.value : unitField?.value || 'pcs',
+            defaultTax: defaultTaxField ? parseFloat(defaultTaxField.value) || 0 : 0
         };
+        
+        console.log('Collecting item data:', itemData);
+        console.log('Default tax field value:', defaultTaxField?.value);
+        console.log('Default tax parsed:', parseFloat(defaultTaxField?.value) || 0);
+        
+        return itemData;
+    }
+
+    // Test function to check default tax field
+    testDefaultTaxField() {
+        const field = document.getElementById('item-default-tax');
+        console.log('Testing default tax field:');
+        console.log('Field element:', field);
+        console.log('Field value:', field?.value);
+        console.log('Field type:', typeof field?.value);
+        console.log('Field parsed:', parseFloat(field?.value) || 0);
+        return field;
     }
 
     async deleteItem(itemId) {
@@ -1894,31 +2036,62 @@ export class BillGeneratorApp {
         const searchTerm = document.getElementById('search-items')?.value || '';
         const items = this.billManager.getItems();
         
+        console.log('filterItems called with search term:', searchTerm);
+        console.log('Available items:', items.length);
+        
         const itemsContainer = document.getElementById('items-container-warehouse');
-        if (!itemsContainer) return;
+        if (!itemsContainer) {
+            console.error('Items container not found!');
+            return;
+        }
         
         const itemCards = itemsContainer.querySelectorAll('.item-card');
+        console.log('Found item cards:', itemCards.length);
         
-        if (!searchTerm) {
+        if (!searchTerm.trim()) {
             // Show all items
+            console.log('No search term, showing all items');
             itemCards.forEach(card => card.style.display = 'block');
             return;
         }
         
-        const term = searchTerm.toLowerCase();
-        const filteredItems = items.filter(item => 
-            item.name.toLowerCase().includes(term) ||
-            item.hsn.toLowerCase().includes(term) ||
-            item.defaultUnit.toLowerCase().includes(term)
-        );
+        const term = searchTerm.toLowerCase().trim();
+        console.log('Searching for term:', term);
         
+        let visibleCount = 0;
+        
+        // Match each card with its corresponding item and filter
         itemCards.forEach((card, index) => {
-            if (index < filteredItems.length) {
-                card.style.display = 'block';
-            } else {
+            const editBtn = card.querySelector('.edit-item-btn');
+            if (!editBtn) {
+                console.log(`Card ${index}: No edit button found`);
                 card.style.display = 'none';
+                return;
             }
+            
+            const itemId = editBtn.dataset.itemId;
+            const item = items.find(i => i.id === itemId);
+            
+            if (!item) {
+                console.log(`Card ${index}: No item found for ID ${itemId}`);
+                card.style.display = 'none';
+                return;
+            }
+            
+            const nameMatch = (item.name || '').toLowerCase().includes(term);
+            const hsnMatch = (item.hsn || '').toLowerCase().includes(term);
+            const unitMatch = (item.defaultUnit || '').toLowerCase().includes(term);
+            const matches = nameMatch || hsnMatch || unitMatch;
+            
+            if (matches) {
+                visibleCount++;
+                console.log(`Card ${index}: Item "${item.name}" matches search term`);
+            }
+            
+            card.style.display = matches ? 'block' : 'none';
         });
+        
+        console.log(`Search complete. ${visibleCount} items visible out of ${itemCards.length} total cards`);
     }
 
     closeItemModal() {
