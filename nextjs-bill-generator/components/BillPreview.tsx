@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { X, Printer } from 'lucide-react'
+import { generateESTRTTemplate } from '@/lib/billTemplate'
 
 interface BillPreviewProps {
   onClose: () => void
@@ -121,6 +122,14 @@ export default function BillPreview({ onClose, billData }: BillPreviewProps) {
     return String(value)
   }
 
+  // Helper function to extract unit value (handles custom units)
+  const getUnitDisplay = (unit: string): string => {
+    if (unit.startsWith('custom:')) {
+      return unit.split(':')[1] || unit
+    }
+    return unit
+  }
+
   const hasAnyDiscount = (items: any[]) => {
     return items.some(item => parseFloat(item.discount) > 0)
   }
@@ -173,7 +182,7 @@ export default function BillPreview({ onClose, billData }: BillPreviewProps) {
     return result + ' Rupees Only'
   }
   
-  const convertToWords = (num: number) => {
+  const convertToWords: any = (num: number) => {
     if (num === 0) return ''
     
     const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine']
@@ -282,216 +291,10 @@ export default function BillPreview({ onClose, billData }: BillPreviewProps) {
     `
   }
 
-  const generateESTRTTemplate = (billData: any) => {
-    const hasDiscount = hasAnyDiscount(billData.items)
-    const isSameStateValue = isSameState(billData.businessInfo.state, billData.customerInfo.state)
-    
-    const itemsHtml = billData.items.map((item: any) => {
-      let row = `
-        <tr>
-          <td style="padding: 3px; border: 1px solid #000; text-align: left; font-size: 10px;">${safeString(item.name)}</td>
-          <td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${safeString(item.hsn)}</td>
-          <td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${safeString(item.quantity)}</td>
-          <td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${safeString(item.unit)}</td>
-          <td style="padding: 3px; border: 1px solid #000; text-align: right; font-size: 10px;">₹${safeToFixed(item.rate)}</td>`
-      
-      if (hasDiscount) {
-        row += `<td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${safeToFixed(item.discount)}%</td>`
-      }
-      
-      row += `<td style="padding: 3px; border: 1px solid #000; text-align: right; font-size: 10px;">₹${safeToFixed(item.amount)}</td>`
-      
-      if (isSameStateValue) {
-        // Same state: Show CGST and SGST
-        row += `<td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${safeToFixed(item.cgst)}%</td>
-                <td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${safeToFixed(item.sgst)}%</td>`
-      } else {
-        // Different state: Show IGST only
-        row += `<td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${safeToFixed(item.igst)}%</td>`
-      }
-      
-      row += `<td style="padding: 3px; border: 1px solid #000; text-align: right; font-size: 10px;">₹${safeToFixed(item.taxAmount)}</td>
-              <td style="padding: 3px; border: 1px solid #000; text-align: right; font-size: 10px;">₹${safeToFixed(item.totalAmount)}</td>
-          </tr>`
-      return row
-    }).join('')
-
-    // Calculate totals with safe values
-    let totalCGST = 0
-    let totalSGST = 0
-    let totalIGST = 0
-    let totalTax = 0
-    
-    billData.items.forEach((item: any) => {
-      const amount = parseFloat(item.amount) || 0
-      
-      if (isSameStateValue) {
-        // Same state: Calculate CGST and SGST
-        const cgst = parseFloat(item.cgst) || 0
-        const sgst = parseFloat(item.sgst) || 0
-        
-        const cgstAmount = (amount * cgst) / 100
-        const sgstAmount = (amount * sgst) / 100
-        
-        totalCGST += cgstAmount
-        totalSGST += sgstAmount
-        totalTax += cgstAmount + sgstAmount
-      } else {
-        // Different state: Calculate IGST
-        const igst = parseFloat(item.igst) || 0
-        const igstAmount = (amount * igst) / 100
-        
-        totalIGST += igstAmount
-        totalTax += igstAmount
-      }
-    })
-
-    const billTypeText = billData.billType === 'estimate' ? 'ESTIMATE' : 'INVOICE'
-    const billNumberText = safeString(billData.billNumber) || `SR/2025-26/0001`
-
-    let tableHeader = `
-      <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 10px;">
-        <thead>
-          <tr style="background: #f0f0f0;">
-            <th style="padding: 3px; border: 1px solid #000; text-align: left; font-weight: bold; font-size: 10px;">Item Description</th>
-            <th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">HSN/SAC</th>
-            <th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">Qty</th>
-            <th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">Unit</th>
-            <th style="padding: 3px; border: 1px solid #000; text-align: right; font-weight: bold; font-size: 10px;">Rate</th>`
-    
-    if (hasDiscount) {
-      tableHeader += `<th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">Disc%</th>`
-    }
-    
-    tableHeader += `<th style="padding: 3px; border: 1px solid #000; text-align: right; font-weight: bold; font-size: 10px;">Amount</th>`
-    
-    if (isSameStateValue) {
-      // Same state: Show CGST and SGST columns
-      tableHeader += `<th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">CGST%</th>
-                      <th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">SGST%</th>`
-    } else {
-      // Different state: Show IGST column only
-      tableHeader += `<th style="padding: 3px; border: 1px solid #000; text-align: center; font-weight: bold; font-size: 10px;">IGST%</th>`
-    }
-    
-    tableHeader += `<th style="padding: 3px; border: 1px solid #000; text-align: right; font-weight: bold; font-size: 10px;">Tax</th>
-                    <th style="padding: 3px; border: 1px solid #000; text-align: right; font-weight: bold; font-size: 10px;">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-        </table>`
-
-    // Build totals section based on state
-    let totalsSection = `
-            <!-- Totals Section -->
-            <div style="margin-bottom: 10px;">
-              <div style="display: flex; justify-content: flex-end;">
-                <div style="width: 250px;">
-                  <div style="display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #ccc; font-size: 10px;">
-                    <span>Subtotal:</span>
-                    <span>₹${safeToFixed(billData.subtotal)}</span>
-                  </div>`
-    
-    if (isSameStateValue) {
-      // Same state: Show CGST and SGST breakdown
-      totalsSection += `
-                  <div style="display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #ccc; font-size: 10px;">
-                    <span>CGST:</span>
-                    <span>₹${safeToFixed(totalCGST)}</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #ccc; font-size: 10px;">
-                    <span>SGST:</span>
-                    <span>₹${safeToFixed(totalSGST)}</span>
-                  </div>`
-    } else {
-      // Different state: Show IGST
-      totalsSection += `
-                  <div style="display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #ccc; font-size: 10px;">
-                    <span>IGST:</span>
-                    <span>₹${safeToFixed(totalIGST)}</span>
-                  </div>`
-    }
-    
-    totalsSection += `
-                  <div style="display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #ccc; font-size: 10px;">
-                    <span>Total Tax:</span>
-                    <span>₹${safeToFixed(totalTax)}</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #ccc; font-size: 10px;">
-                    <span>Rounding:</span>
-                    <span>₹${safeToFixed(billData.roundingAmount !== undefined ? billData.roundingAmount : 0)}</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; padding: 5px 0; font-weight: bold; font-size: 12px; border-top: 1px solid #000;">
-                    <span>Total:</span>
-                    <span>₹${safeToFixed(billData.total)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>`
-
-    return `
-      <div class="bill-preview" style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 10px; font-size: 11px;">
-        <!-- Company Header -->
-        <div style="text-align: center; margin-bottom: 15px; border-bottom: 1px solid #000; padding-bottom: 10px;">
-          <h1 style="margin: 0; font-size: 18px; color: #333;">${safeString(billData.businessInfo.name)}</h1>
-          <p style="margin: 2px 0; font-size: 11px;">${safeString(billData.businessInfo.address)}</p>
-          <p style="margin: 2px 0; font-size: 11px;">Phone: ${safeString(billData.businessInfo.phone)} | Email: ${safeString(billData.businessInfo.email)}</p>
-          ${billData.businessInfo.gstin ? `<p style="margin: 2px 0; font-size: 11px;">GSTIN: ${safeString(billData.businessInfo.gstin)}</p>` : ''}
-          ${billData.businessInfo.pan ? `<p style="margin: 2px 0; font-size: 11px;">PAN: ${safeString(billData.businessInfo.pan)}</p>` : ''}
-        </div>
-
-        <!-- Bill Details -->
-        <div style="margin-bottom: 10px;">
-          <h2 style="text-align: center; margin: 0; font-size: 16px; color: #333;">${billTypeText}</h2>
-          <div style="display: flex; justify-content: space-between; margin-top: 5px;">
-            <div>
-              <p style="margin: 1px 0; font-size: 11px;"><strong>${billTypeText} No:</strong> ${billNumberText}</p>
-              <p style="margin: 1px 0; font-size: 11px;"><strong>Date:</strong> ${formatDate(billData.billDate)}</p>
-            </div>
-            <div>
-              <p style="margin: 1px 0; font-size: 11px;"><strong>Place of Supply:</strong> ${safeString(billData.placeOfSupply, 'Haryana (06)')}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bill To Section -->
-        <div style="margin-bottom: 10px;">
-          <h3 style="margin: 0 0 5px 0; font-size: 12px;">Bill To:</h3>
-          <div style="border: 1px solid #000; padding: 8px;">
-            <p style="margin: 0; font-weight: bold; font-size: 12px;">${safeString(billData.customerInfo.name)}</p>
-            ${billData.customerInfo.address ? `<p style="margin: 2px 0; font-size: 10px;">${safeString(billData.customerInfo.address)}</p>` : ''}
-            ${billData.customerInfo.city ? `<p style="margin: 2px 0; font-size: 10px;">${safeString(billData.customerInfo.city)}</p>` : ''}
-            ${billData.customerInfo.state ? `<p style="margin: 2px 0; font-size: 10px;">${safeString(billData.customerInfo.state).replace(/\s*\(\d+\)/, '')}</p>` : ''}
-            ${billData.customerInfo.pincode ? `<p style="margin: 2px 0; font-size: 10px;">${safeString(billData.customerInfo.pincode)}</p>` : ''}
-            ${billData.customerInfo.gstin ? `<p style="margin: 2px 0; font-size: 10px;">GSTIN: ${safeString(billData.customerInfo.gstin)}</p>` : ''}
-            ${billData.customerInfo.phone ? `<p style="margin: 2px 0; font-size: 10px;">Phone: ${safeString(billData.customerInfo.phone)}</p>` : ''}
-            ${billData.customerInfo.email ? `<p style="margin: 2px 0; font-size: 10px;">Email: ${safeString(billData.customerInfo.email)}</p>` : ''}
-          </div>
-        </div>
-
-        ${renderShippingAddress(billData.shippingInfo)}
-
-        <!-- Items Table -->
-        <div style="margin-bottom: 10px;">
-          ${tableHeader}
-        </div>
-
-        ${totalsSection}
-
-        <!-- Total in Words -->
-        <div style="margin-bottom: 10px;">
-          <p style="margin: 0; font-size: 10px;"><strong>Total in Words:</strong> ${numberToWords(billData.total)}</p>
-        </div>
-
-        ${renderBankDetails(billData.bankDetails)}
-        ${renderTermsAndSignatory(billData.termsConditions)}
-      </div>
-    `
-  }
+  // generateESTRTTemplate is now imported from shared template utility
 
   const generateBillHTML = () => {
+    // Use the shared template utility
     switch (template) {
       case 'est-rt':
         return generateESTRTTemplate(currentBillData)

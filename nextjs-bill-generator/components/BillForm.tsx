@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, Eye, Save } from 'lucide-react'
-import { Bill, BillItem, Item, Customer } from '@/contexts/AppContext'
+import { Bill, BillItem, Item, Customer, useApp } from '@/contexts/AppContext'
 
 interface BillFormProps {
   items: Item[]
@@ -26,6 +26,8 @@ const INDIAN_STATES = [
 ]
 
 export default function BillForm({ items, customers, onSave, onPreview, loading, initialData }: BillFormProps) {
+  const { businessSettings, bills } = useApp()
+  
   const [formData, setFormData] = useState({
     billType: 'invoice' as 'invoice' | 'estimate',
     billNumber: '',
@@ -82,59 +84,228 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
     let totalTax = 0
 
     formData.items.forEach(item => {
-      const amount = item.quantity * item.rate
-      const discountAmount = (amount * item.discount) / 100
+      // Ensure all values are valid numbers
+      const quantity = item.quantity != null && !isNaN(item.quantity) ? Number(item.quantity) : 0
+      const rate = item.rate != null && !isNaN(item.rate) ? Number(item.rate) : 0
+      const discount = item.discount != null && !isNaN(item.discount) ? Number(item.discount) : 0
+      const cgst = item.cgst != null && !isNaN(item.cgst) ? Number(item.cgst) : 0
+      const sgst = item.sgst != null && !isNaN(item.sgst) ? Number(item.sgst) : 0
+      const igst = item.igst != null && !isNaN(item.igst) ? Number(item.igst) : 0
+      
+      const amount = quantity * rate
+      const discountAmount = (amount * discount) / 100
       const discountedAmount = amount - discountAmount
       
-      const taxAmount = (discountedAmount * (item.cgst + item.sgst + item.igst)) / 100
+      // Tax calculation: If IGST is used, use only IGST; otherwise use CGST + SGST
+      const taxAmount = igst > 0 
+        ? (discountedAmount * igst) / 100
+        : (discountedAmount * (cgst + sgst)) / 100
       
-      subtotal += discountedAmount
-      totalTax += taxAmount
+      subtotal += isNaN(discountedAmount) ? 0 : discountedAmount
+      totalTax += isNaN(taxAmount) ? 0 : taxAmount
     })
 
     const rounding = Math.round(subtotal + totalTax) - (subtotal + totalTax)
     const total = subtotal + totalTax + rounding
 
     setTotals({
-      subtotal: parseFloat(subtotal.toFixed(2)),
-      taxAmount: parseFloat(totalTax.toFixed(2)),
-      roundingAmount: parseFloat(rounding.toFixed(2)),
-      total: parseFloat(total.toFixed(2))
+      subtotal: parseFloat(subtotal.toFixed(2)) || 0,
+      taxAmount: parseFloat(totalTax.toFixed(2)) || 0,
+      roundingAmount: parseFloat(rounding.toFixed(2)) || 0,
+      total: parseFloat(total.toFixed(2)) || 0
     })
   }, [formData.items])
 
-  // Populate form with initial data when editing
+  // Track if we've prefilled the form to avoid overwriting user changes
+  const [hasPrefilled, setHasPrefilled] = useState(false)
+  // Track which initialData we've already initialized with to prevent re-initialization
+  const [initializedBillId, setInitializedBillId] = useState<string | null>(null)
+
+  // Helper function to check if two states are the same
+  const isSameState = (state1: string, state2: string): boolean => {
+    if (!state1 || !state2) return false
+    // Extract state codes from the state strings (e.g., "Haryana (06)" -> "06")
+    const stateCode1 = state1.match(/\((\d+)\)/)?.[1]
+    const stateCode2 = state2.match(/\((\d+)\)/)?.[1]
+    return stateCode1 === stateCode2
+  }
+
+  // Helper function to get default tax based on states
+  const getDefaultTax = (businessState: string, customerState: string) => {
+    const sameState = isSameState(businessState, customerState)
+    if (sameState) {
+      return { cgst: 9, sgst: 9, igst: 0 }
+    } else {
+      return { cgst: 0, sgst: 0, igst: 18 }
+    }
+  }
+
+  // Generate bill number based on type, date, and existing bills
+  const generateBillNumber = useCallback((billType: 'invoice' | 'estimate', billDate: string) => {
+    // Compute financial year string from bill date
+    const dateStr = billDate || new Date().toISOString().split('T')[0]
+    const d = new Date(dateStr)
+    const year = d.getFullYear()
+    const month = d.getMonth() // 0-based
+    const fyStartYear = month >= 3 ? year : year - 1 // FY begins in April
+    const fyEndYearShort = (fyStartYear + 1).toString().slice(-2)
+    const fyString = `${fyStartYear}-${fyEndYearShort}`
+
+    const prefix = 'SR'
+
+    // Find existing numbers for this FY and bill type, extract numeric sequence
+    let maxSeq = 0
+    bills.forEach(b => {
+      const num = b.billNumber || ''
+      const parts = num.split('/')
+
+      if (billType === 'estimate') {
+        // For estimates: SR/ES/2025-26/1
+        if (parts.length === 4 && parts[0] === prefix && parts[1] === 'ES' && parts[2] === fyString) {
+          const seq = parseInt(parts[3], 10)
+          if (!isNaN(seq)) {
+            maxSeq = Math.max(maxSeq, seq)
+          }
+        }
+      } else {
+        // For invoices: SR/2025-26/1
+        if (parts.length === 3 && parts[0] === prefix && parts[1] === fyString) {
+          const seq = parseInt(parts[2], 10)
+          if (!isNaN(seq)) {
+            maxSeq = Math.max(maxSeq, seq)
+          }
+        }
+      }
+    })
+
+    const nextSeq = (maxSeq || 0) + 1
+
+    // Generate bill number based on type
+    if (billType === 'estimate') {
+      return `${prefix}/ES/${fyString}/${nextSeq}`
+    } else {
+      return `${prefix}/${fyString}/${nextSeq}`
+    }
+  }, [bills])
+
+  // Populate form with initial data when editing or prefill from settings for new bill
   useEffect(() => {
     if (initialData) {
-      setFormData({
-        billType: initialData.billType,
-        billNumber: initialData.billNumber,
-        billDate: initialData.billDate,
-        placeOfSupply: initialData.placeOfSupply,
-        businessInfo: initialData.businessInfo,
-        customerInfo: initialData.customerInfo,
-        shippingInfo: initialData.shippingInfo || {
-          name: '',
-          address: '',
-          city: '',
-          state: '',
-          pincode: '',
-          phone: ''
+      // Only initialize if this is a different bill (different ID) or we haven't initialized yet
+      const currentBillId = initialData.id || null
+      if (currentBillId !== initializedBillId) {
+        // Editing existing bill - initialize form with bill data
+        setFormData({
+          billType: initialData.billType,
+          billNumber: initialData.billNumber,
+          billDate: initialData.billDate,
+          placeOfSupply: initialData.placeOfSupply,
+          businessInfo: {
+            name: initialData.businessInfo.name,
+            email: initialData.businessInfo.email,
+            phone: initialData.businessInfo.phone,
+            address: initialData.businessInfo.address,
+            gstin: initialData.businessInfo.gstin || '',
+            pan: initialData.businessInfo.pan || '',
+            state: initialData.businessInfo.state
+          },
+          customerInfo: {
+            name: initialData.customerInfo.name,
+            email: initialData.customerInfo.email || '',
+            phone: initialData.customerInfo.phone || '',
+            address: initialData.customerInfo.address || '',
+            city: initialData.customerInfo.city || '',
+            state: initialData.customerInfo.state,
+            pincode: initialData.customerInfo.pincode || '',
+            gstin: initialData.customerInfo.gstin || ''
+          },
+          shippingInfo: {
+            name: initialData.shippingInfo?.name || '',
+            address: initialData.shippingInfo?.address || '',
+            city: initialData.shippingInfo?.city || '',
+            state: initialData.shippingInfo?.state || '',
+            pincode: initialData.shippingInfo?.pincode || '',
+            phone: initialData.shippingInfo?.phone || ''
+          },
+          bankDetails: {
+            bankName: initialData.bankDetails?.bankName || '',
+            accountHolderName: initialData.bankDetails?.accountHolderName || '',
+            accountNumber: initialData.bankDetails?.accountNumber || '',
+            ifscCode: initialData.bankDetails?.ifscCode || '',
+            branch: initialData.bankDetails?.branch || ''
+          },
+          items: initialData.items || [],
+          termsConditions: initialData.termsConditions || ''
+        })
+        setInitializedBillId(currentBillId)
+        setHasPrefilled(true)
+      }
+    } else if (!initialData && initializedBillId) {
+      // Switching from edit mode to new bill mode - reset state
+      setInitializedBillId(null)
+      setHasPrefilled(false)
+    } else if (businessSettings && !hasPrefilled) {
+      // New bill - prefill from business settings (only once)
+      const currentDate = new Date().toISOString().split('T')[0]
+      const generatedBillNumber = generateBillNumber('invoice', currentDate)
+      setFormData(prev => ({
+        ...prev,
+        billNumber: generatedBillNumber,
+        billDate: currentDate,
+        businessInfo: {
+          name: businessSettings.businessInfo.name,
+          email: businessSettings.businessInfo.email,
+          phone: businessSettings.businessInfo.phone,
+          address: businessSettings.businessInfo.address,
+          gstin: businessSettings.businessInfo.gstin || '',
+          pan: businessSettings.businessInfo.pan || '',
+          state: businessSettings.businessInfo.state
         },
-        bankDetails: initialData.bankDetails || {
-          bankName: '',
-          accountHolderName: '',
-          accountNumber: '',
-          ifscCode: '',
-          branch: ''
+        bankDetails: {
+          bankName: businessSettings.bankDetails?.bankName || '',
+          accountHolderName: businessSettings.bankDetails?.accountHolderName || '',
+          accountNumber: businessSettings.bankDetails?.accountNumber || '',
+          ifscCode: businessSettings.bankDetails?.ifscCode || '',
+          branch: businessSettings.bankDetails?.branch || ''
         },
-        items: initialData.items || [],
-        termsConditions: initialData.termsConditions || ''
-      })
+        termsConditions: businessSettings.termsConditions || '',
+        placeOfSupply: businessSettings.businessInfo.state || 'Haryana (06)'
+      }))
+      setHasPrefilled(true)
+      setInitializedBillId(null) // Reset when creating new bill
+    } else if (businessSettings && hasPrefilled && !initialData) {
+      // If bills loaded after businessSettings, regenerate bill number with correct sequence
+      const currentDate = formData.billDate || new Date().toISOString().split('T')[0]
+      const generatedBillNumber = generateBillNumber(formData.billType, currentDate)
+      // Only update if bill number is different (to avoid infinite loops)
+      if (generatedBillNumber !== formData.billNumber) {
+        setFormData(prev => ({
+          ...prev,
+          billNumber: generatedBillNumber
+        }))
+      }
     }
-  }, [initialData])
+  }, [initialData, businessSettings, hasPrefilled, generateBillNumber, formData.billNumber, formData.billType, initializedBillId])
+
+  // Update bill number when bills list changes (for new bills only)
+  // This ensures bill number is updated when new bills are saved
+  useEffect(() => {
+    if (!initialData && businessSettings && hasPrefilled && formData.billNumber) {
+      const generatedBillNumber = generateBillNumber(formData.billType, formData.billDate)
+      // Only update if the generated number is different (to avoid infinite loops)
+      if (generatedBillNumber !== formData.billNumber) {
+        setFormData(prev => ({
+          ...prev,
+          billNumber: generatedBillNumber
+        }))
+      }
+    }
+  }, [bills.length, formData.billType, formData.billDate, initialData, businessSettings, hasPrefilled, formData.billNumber])
 
   const addItem = () => {
+    // Get default tax based on business and customer state
+    const defaultTax = getDefaultTax(formData.businessInfo.state, formData.customerInfo.state)
+    
     const newItem: BillItem = {
       name: '',
       hsn: '',
@@ -143,9 +314,9 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
       rate: 0,
       discount: 0,
       amount: 0,
-      cgst: 0,
-      sgst: 0,
-      igst: 0,
+      cgst: defaultTax.cgst,
+      sgst: defaultTax.sgst,
+      igst: defaultTax.igst,
       taxAmount: 0,
       totalAmount: 0
     }
@@ -173,24 +344,55 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
           if (field === 'name' && value) {
             const warehouseItem = items.find(item => item.name.toLowerCase() === value.toLowerCase())
             if (warehouseItem) {
-              updatedItem.hsn = warehouseItem.hsn
-              updatedItem.rate = warehouseItem.defaultRate
-              updatedItem.unit = warehouseItem.defaultUnit
-              updatedItem.cgst = warehouseItem.defaultTax / 2
-              updatedItem.sgst = warehouseItem.defaultTax / 2
-              updatedItem.igst = 0
+              updatedItem.hsn = warehouseItem.hsn || ''
+              // Ensure defaultRate is a valid number, default to 0 if not
+              const defaultRate = warehouseItem.defaultRate != null && !isNaN(warehouseItem.defaultRate) 
+                ? Number(warehouseItem.defaultRate) 
+                : 0
+              updatedItem.rate = defaultRate
+              updatedItem.unit = warehouseItem.defaultUnit || 'pcs'
+              // Use warehouse defaultTax if available, otherwise use default based on state
+              const warehouseTax = warehouseItem.defaultTax != null && !isNaN(warehouseItem.defaultTax)
+                ? Number(warehouseItem.defaultTax)
+                : 18 // Default to 18%
+              const defaultTax = getDefaultTax(formData.businessInfo.state, formData.customerInfo.state)
+              // Apply warehouse tax based on state
+              // If same state: split warehouse tax into CGST and SGST
+              // If different state: use warehouse tax as IGST
+              if (defaultTax.cgst > 0 && defaultTax.sgst > 0) {
+                // Same state: split warehouse tax into CGST and SGST
+                updatedItem.cgst = warehouseTax / 2
+                updatedItem.sgst = warehouseTax / 2
+                updatedItem.igst = 0
+              } else {
+                // Different state: use warehouse tax as IGST
+                updatedItem.cgst = 0
+                updatedItem.sgst = 0
+                updatedItem.igst = warehouseTax
+              }
             }
           }
           
-          // Calculate amounts
-          const amount = updatedItem.quantity * updatedItem.rate
-          const discountAmount = (amount * updatedItem.discount) / 100
-          const discountedAmount = amount - discountAmount
-          const taxAmount = (discountedAmount * (updatedItem.cgst + updatedItem.sgst + updatedItem.igst)) / 100
+          // Calculate amounts - ensure all values are valid numbers
+          const quantity = updatedItem.quantity != null && !isNaN(updatedItem.quantity) ? Number(updatedItem.quantity) : 0
+          const rate = updatedItem.rate != null && !isNaN(updatedItem.rate) ? Number(updatedItem.rate) : 0
+          const discount = updatedItem.discount != null && !isNaN(updatedItem.discount) ? Number(updatedItem.discount) : 0
+          const cgst = updatedItem.cgst != null && !isNaN(updatedItem.cgst) ? Number(updatedItem.cgst) : 0
+          const sgst = updatedItem.sgst != null && !isNaN(updatedItem.sgst) ? Number(updatedItem.sgst) : 0
+          const igst = updatedItem.igst != null && !isNaN(updatedItem.igst) ? Number(updatedItem.igst) : 0
           
-          updatedItem.amount = parseFloat(discountedAmount.toFixed(2))
-          updatedItem.taxAmount = parseFloat(taxAmount.toFixed(2))
-          updatedItem.totalAmount = parseFloat((discountedAmount + taxAmount).toFixed(2))
+          const amount = quantity * rate
+          const discountAmount = (amount * discount) / 100
+          const discountedAmount = amount - discountAmount
+          
+          // Tax calculation: If IGST is used, use only IGST; otherwise use CGST + SGST
+          const taxAmount = igst > 0 
+            ? (discountedAmount * igst) / 100
+            : (discountedAmount * (cgst + sgst)) / 100
+          
+          updatedItem.amount = parseFloat(discountedAmount.toFixed(2)) || 0
+          updatedItem.taxAmount = parseFloat(taxAmount.toFixed(2)) || 0
+          updatedItem.totalAmount = parseFloat((discountedAmount + taxAmount).toFixed(2)) || 0
           
           return updatedItem
         }
@@ -199,22 +401,65 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
     }))
   }
 
+  // Helper function to recalculate item amounts
+  const recalculateItemAmounts = (item: BillItem): BillItem => {
+    const quantity = item.quantity != null && !isNaN(item.quantity) ? Number(item.quantity) : 0
+    const rate = item.rate != null && !isNaN(item.rate) ? Number(item.rate) : 0
+    const discount = item.discount != null && !isNaN(item.discount) ? Number(item.discount) : 0
+    const cgst = item.cgst != null && !isNaN(item.cgst) ? Number(item.cgst) : 0
+    const sgst = item.sgst != null && !isNaN(item.sgst) ? Number(item.sgst) : 0
+    const igst = item.igst != null && !isNaN(item.igst) ? Number(item.igst) : 0
+    
+    const amount = quantity * rate
+    const discountAmount = (amount * discount) / 100
+    const discountedAmount = amount - discountAmount
+    
+    // Tax calculation: If IGST is used, use only IGST; otherwise use CGST + SGST
+    const taxAmount = igst > 0 
+      ? (discountedAmount * igst) / 100
+      : (discountedAmount * (cgst + sgst)) / 100
+    
+    return {
+      ...item,
+      amount: parseFloat(discountedAmount.toFixed(2)) || 0,
+      taxAmount: parseFloat(taxAmount.toFixed(2)) || 0,
+      totalAmount: parseFloat((discountedAmount + taxAmount).toFixed(2)) || 0
+    }
+  }
+
   const handleCustomerSelect = (customerName: string) => {
     const customer = customers.find(c => c.name.toLowerCase() === customerName.toLowerCase())
     if (customer) {
-      setFormData(prev => ({
-        ...prev,
-        customerInfo: {
-          name: customer.name,
-          email: customer.email || '',
-          phone: customer.phone || '',
-          address: customer.address || '',
-          city: customer.city || '',
-          state: customer.state,
-          pincode: customer.pincode || '',
-          gstin: customer.gstin || ''
+      setFormData(prev => {
+        // Get default tax based on business and customer state
+        const defaultTax = getDefaultTax(prev.businessInfo.state, customer.state)
+        
+        // Update tax for all existing items to match the new state and recalculate amounts
+        const updatedItems = prev.items.map(item => {
+          const itemWithNewTax = {
+            ...item,
+            cgst: defaultTax.cgst,
+            sgst: defaultTax.sgst,
+            igst: defaultTax.igst
+          }
+          return recalculateItemAmounts(itemWithNewTax)
+        })
+        
+        return {
+          ...prev,
+          customerInfo: {
+            name: customer.name,
+            email: customer.email || '',
+            phone: customer.phone || '',
+            address: customer.address || '',
+            city: customer.city || '',
+            state: customer.state,
+            pincode: customer.pincode || '',
+            gstin: customer.gstin || ''
+          },
+          items: updatedItems
         }
-      }))
+      })
     }
   }
 
@@ -245,7 +490,17 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
             <label className="form-label">Bill Type</label>
             <select
               value={formData.billType}
-              onChange={(e) => setFormData(prev => ({ ...prev, billType: e.target.value as 'invoice' | 'estimate' }))}
+              onChange={(e) => {
+                const newBillType = e.target.value as 'invoice' | 'estimate'
+                setFormData(prev => {
+                  // Update bill number when type changes (for new bills only)
+                  if (!initialData) {
+                    const generatedBillNumber = generateBillNumber(newBillType, prev.billDate)
+                    return { ...prev, billType: newBillType, billNumber: generatedBillNumber }
+                  }
+                  return { ...prev, billType: newBillType }
+                })
+              }}
               className="form-select"
             >
               <option value="invoice">Invoice</option>
@@ -267,7 +522,17 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
             <input
               type="date"
               value={formData.billDate}
-              onChange={(e) => setFormData(prev => ({ ...prev, billDate: e.target.value }))}
+              onChange={(e) => {
+                const newDate = e.target.value
+                setFormData(prev => {
+                  // Update bill number when date changes (for new bills only)
+                  if (!initialData) {
+                    const generatedBillNumber = generateBillNumber(prev.billType, newDate)
+                    return { ...prev, billDate: newDate, billNumber: generatedBillNumber }
+                  }
+                  return { ...prev, billDate: newDate }
+                })
+              }}
               className="form-input"
               required
             />
@@ -465,10 +730,30 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
             <label className="form-label">State *</label>
             <select
               value={formData.customerInfo.state}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                customerInfo: { ...prev.customerInfo, state: e.target.value }
-              }))}
+              onChange={(e) => {
+                const newState = e.target.value
+                setFormData(prev => {
+                  // Get default tax based on business and new customer state
+                  const defaultTax = getDefaultTax(prev.businessInfo.state, newState)
+                  
+                  // Update tax for all existing items to match the new state and recalculate amounts
+                  const updatedItems = prev.items.map(item => {
+                    const itemWithNewTax = {
+                      ...item,
+                      cgst: defaultTax.cgst,
+                      sgst: defaultTax.sgst,
+                      igst: defaultTax.igst
+                    }
+                    return recalculateItemAmounts(itemWithNewTax)
+                  })
+                  
+                  return {
+                    ...prev,
+                    customerInfo: { ...prev.customerInfo, state: newState },
+                    items: updatedItems
+                  }
+                })
+              }}
               className="form-select"
               required
             >
@@ -507,16 +792,8 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
 
       {/* Items */}
       <div className="card">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Items</h3>
-          <button
-            type="button"
-            onClick={addItem}
-            className="btn btn-primary btn-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Add Item
-          </button>
         </div>
 
         {formData.items.length === 0 ? (
@@ -579,25 +856,68 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
                   </div>
                   <div>
                     <label className="form-label">Unit *</label>
-                    <select
-                      value={item.unit}
-                      onChange={(e) => updateItem(index, 'unit', e.target.value)}
-                      className="form-select"
-                      required
-                    >
-                      <option value="pcs">Pieces</option>
-                      <option value="kg">Kilograms</option>
-                      <option value="g">Grams</option>
-                      <option value="l">Liters</option>
-                      <option value="ml">Milliliters</option>
-                      <option value="m">Meters</option>
-                      <option value="cm">Centimeters</option>
-                      <option value="ft">Feet</option>
-                      <option value="hrs">Hours</option>
-                      <option value="days">Days</option>
-                      <option value="sqm">Square Meters</option>
-                      <option value="sqft">Sq. Ft.</option>
-                    </select>
+                    {item.unit.startsWith('custom:') ? (
+                      <div>
+                        <select
+                          value="custom"
+                          onChange={(e) => {
+                            if (e.target.value !== 'custom') {
+                              updateItem(index, 'unit', e.target.value)
+                            }
+                          }}
+                          className="form-select mb-2"
+                        >
+                          <option value="pcs">Pieces</option>
+                          <option value="kg">Kilograms</option>
+                          <option value="g">Grams</option>
+                          <option value="l">Liters</option>
+                          <option value="ml">Milliliters</option>
+                          <option value="m">Meters</option>
+                          <option value="cm">Centimeters</option>
+                          <option value="ft">Feet</option>
+                          <option value="hrs">Hours</option>
+                          <option value="days">Days</option>
+                          <option value="sqm">Square Meters</option>
+                          <option value="sqft">Sq. Ft.</option>
+                          <option value="custom">Custom</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={item.unit.split(':')[1] || ''}
+                          onChange={(e) => updateItem(index, 'unit', `custom:${e.target.value}`)}
+                          placeholder="Enter custom unit"
+                          className="form-input"
+                          required
+                        />
+                      </div>
+                    ) : (
+                      <select
+                        value={item.unit}
+                        onChange={(e) => {
+                          if (e.target.value === 'custom') {
+                            updateItem(index, 'unit', 'custom:')
+                          } else {
+                            updateItem(index, 'unit', e.target.value)
+                          }
+                        }}
+                        className="form-select"
+                        required
+                      >
+                        <option value="pcs">Pieces</option>
+                        <option value="kg">Kilograms</option>
+                        <option value="g">Grams</option>
+                        <option value="l">Liters</option>
+                        <option value="ml">Milliliters</option>
+                        <option value="m">Meters</option>
+                        <option value="cm">Centimeters</option>
+                        <option value="ft">Feet</option>
+                        <option value="hrs">Hours</option>
+                        <option value="days">Days</option>
+                        <option value="sqm">Square Meters</option>
+                        <option value="sqft">Sq. Ft.</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                    )}
                   </div>
                   <div>
                     <label className="form-label">Rate *</label>
@@ -663,7 +983,7 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
                     <label className="form-label">Amount</label>
                     <input
                       type="text"
-                      value={`₹${item.amount.toFixed(2)}`}
+                      value={`₹${(item.amount || 0).toFixed(2)}`}
                       className="form-input bg-gray-50"
                       readOnly
                     />
@@ -672,7 +992,7 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
                     <label className="form-label">Tax Amount</label>
                     <input
                       type="text"
-                      value={`₹${item.taxAmount.toFixed(2)}`}
+                      value={`₹${(item.taxAmount || 0).toFixed(2)}`}
                       className="form-input bg-gray-50"
                       readOnly
                     />
@@ -681,7 +1001,7 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
                     <label className="form-label">Total Amount</label>
                     <input
                       type="text"
-                      value={`₹${item.totalAmount.toFixed(2)}`}
+                      value={`₹${(item.totalAmount || 0).toFixed(2)}`}
                       className="form-input bg-gray-50"
                       readOnly
                     />
@@ -691,6 +1011,18 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
             ))}
           </div>
         )}
+        
+        {/* Add Item Button at Bottom */}
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={addItem}
+            className="btn btn-primary btn-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Add Item
+          </button>
+        </div>
       </div>
 
       {/* Terms & Conditions */}
@@ -712,19 +1044,19 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
           <div className="space-y-2">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>₹{totals.subtotal.toFixed(2)}</span>
+              <span>₹{(totals.subtotal || 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Total Tax:</span>
-              <span>₹{totals.taxAmount.toFixed(2)}</span>
+              <span>₹{(totals.taxAmount || 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Rounding:</span>
-              <span>₹{totals.roundingAmount.toFixed(2)}</span>
+              <span>₹{(totals.roundingAmount || 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-lg font-semibold border-t pt-2">
               <span>Total Amount:</span>
-              <span>₹{totals.total.toFixed(2)}</span>
+              <span>₹{(totals.total || 0).toFixed(2)}</span>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import { useAuth } from './AuthContext'
 import { 
   collection, 
@@ -9,6 +9,7 @@ import {
   doc, 
   updateDoc, 
   deleteDoc, 
+  setDoc,
   query, 
   where, 
   serverTimestamp 
@@ -175,10 +176,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Business Settings state
   const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null)
   const [loadingSettings, setLoadingSettings] = useState(false)
+  const [businessSettingsDocId, setBusinessSettingsDocId] = useState<string | null>(null)
+  const [isCreatingDefaultSettings, setIsCreatingDefaultSettings] = useState(false)
+
+  // Stabilize user.uid to prevent unnecessary re-renders
+  const userId = useMemo(() => user?.uid, [user?.uid])
 
   // Load data when user changes
   useEffect(() => {
-    if (user) {
+    if (userId) {
       loadBills()
       loadItems()
       loadCustomers()
@@ -188,8 +194,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setItems([])
       setCustomers([])
       setBusinessSettings(null)
+      setBusinessSettingsDocId(null) // Reset cached doc ID
     }
-  }, [user])
+  }, [userId]) // Only depend on user.uid, not the whole user object
 
   // Bills functions
   const saveBill = async (billData: Omit<Bill, 'id'>) => {
@@ -212,6 +219,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadBills = async () => {
     if (!user) return
+    
+    // Prevent multiple simultaneous loads
+    if (loadingBills) return
     
     setLoadingBills(true)
     try {
@@ -308,6 +318,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadItems = async () => {
     if (!user) return
     
+    // Prevent multiple simultaneous loads
+    if (loadingItems) return
+    
     setLoadingItems(true)
     try {
       const q = query(collection(db, 'items'), where('userId', '==', user.uid))
@@ -371,6 +384,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadCustomers = async () => {
     if (!user) return
     
+    // Prevent multiple simultaneous loads
+    if (loadingCustomers) return
+    
     setLoadingCustomers(true)
     try {
       const q = query(collection(db, 'customers'), where('userId', '==', user.uid))
@@ -418,45 +434,211 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const saveBusinessSettings = async (settings: BusinessSettings) => {
     if (!user) throw new Error('Please log in to save settings')
     
-    // For now, we'll store settings in localStorage
-    // In a real app, you might want to store this in Firestore
-    localStorage.setItem('businessSettings', JSON.stringify(settings))
-    setBusinessSettings(settings)
+    try {
+      // Use setDoc with merge to avoid extra query if we have the doc ID
+      let docId = businessSettingsDocId
+      
+      if (!docId) {
+        // Only query if we don't have the doc ID cached
+        const settingsRef = collection(db, 'businessSettings')
+        const q = query(settingsRef, where('userId', '==', user.uid))
+        const snapshot = await getDocs(q)
+        
+        if (!snapshot.empty) {
+          docId = snapshot.docs[0].id
+          setBusinessSettingsDocId(docId)
+        }
+      }
+      
+      if (docId) {
+        // Update existing document
+        await updateDoc(doc(db, 'businessSettings', docId), {
+          ...settings,
+          userId: user.uid, // Ensure userId is preserved on update
+          updatedAt: serverTimestamp()
+        })
+      } else {
+        // Create new document - use setDoc with generated ID to avoid query
+        const newDocRef = doc(collection(db, 'businessSettings'))
+        await setDoc(newDocRef, {
+          ...settings,
+          userId: user.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        })
+        setBusinessSettingsDocId(newDocRef.id)
+      }
+      
+      // Also save to localStorage as backup
+      localStorage.setItem('businessSettings', JSON.stringify(settings))
+      setBusinessSettings(settings)
+    } catch (error: any) {
+      console.error('Error saving business settings:', error)
+      // Provide more helpful error message
+      if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+        throw new Error('Permission denied. Please check your Firestore security rules. Make sure you have rules for the businessSettings collection that allow authenticated users to read and write their own documents.')
+      }
+      throw error
+    }
   }
 
   const loadBusinessSettings = async () => {
     if (!user) return
     
+    // Prevent multiple simultaneous loads
+    if (loadingSettings) return
+    
     setLoadingSettings(true)
     try {
-      const saved = localStorage.getItem('businessSettings')
-      if (saved) {
-        setBusinessSettings(JSON.parse(saved))
-      } else {
-        // Set default S.R. DECOR business information if no settings are saved
-        const defaultSettings: BusinessSettings = {
-          businessInfo: {
-            name: 'S. R. DECOR',
-            email: 'srdecorofficial@gmail.com',
-            phone: '+91-9811627334',
-            address: 'SHOP NO. 3, DHANI RAM COMPLEX, NEAR METRO PILLAR NO. 54-55, Gurgaon, Haryana - 122002',
-            gstin: '06AFSPJ4994F1ZX',
-            pan: 'AFSPJ4994F',
-            state: 'Haryana (06)'
-          },
-          bankDetails: {
+      // Try to load from Firebase first
+      const settingsRef = collection(db, 'businessSettings')
+      const q = query(settingsRef, where('userId', '==', user.uid))
+      const snapshot = await getDocs(q)
+      
+      if (!snapshot.empty) {
+        // Load from Firebase
+        const docSnapshot = snapshot.docs[0]
+        const settingsData = docSnapshot.data()
+        const docId = docSnapshot.id
+        setBusinessSettingsDocId(docId) // Cache the document ID for future updates
+        
+        const settings: BusinessSettings = {
+          businessInfo: settingsData.businessInfo,
+          bankDetails: settingsData.bankDetails || {
             bankName: '',
             accountHolderName: '',
             accountNumber: '',
             ifscCode: '',
             branch: ''
           },
-          termsConditions: ''
+          termsConditions: settingsData.termsConditions || ''
         }
-        setBusinessSettings(defaultSettings)
+        setBusinessSettings(settings)
+        // Also update localStorage as backup
+        localStorage.setItem('businessSettings', JSON.stringify(settings))
+      } else {
+        // Check if we're already creating default settings to prevent duplicate writes
+        if (isCreatingDefaultSettings) {
+          // Already creating, just set loading to false and return
+          setLoadingSettings(false)
+          return
+        }
+        
+        // Try to load from localStorage (for migration)
+        const saved = localStorage.getItem('businessSettings')
+        if (saved) {
+          const settings = JSON.parse(saved)
+          setBusinessSettings(settings)
+          
+          // Only create if flag is not set (prevent duplicate writes)
+          // No need for recheck read - the flag and loading state prevent race conditions
+          if (!isCreatingDefaultSettings) {
+            setIsCreatingDefaultSettings(true)
+            try {
+              const newDocRef = doc(collection(db, 'businessSettings'))
+              await setDoc(newDocRef, {
+                ...settings,
+                userId: user.uid,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+              })
+              setBusinessSettingsDocId(newDocRef.id) // Cache the document ID
+            } catch (error: any) {
+              // If document already exists (race condition), try to load it
+              if (error.code === 'permission-denied' || error.message?.includes('already exists')) {
+                const recheckSnapshot = await getDocs(q)
+                if (!recheckSnapshot.empty) {
+                  const docSnapshot = recheckSnapshot.docs[0]
+                  setBusinessSettingsDocId(docSnapshot.id)
+                }
+              } else {
+                throw error
+              }
+            } finally {
+              setIsCreatingDefaultSettings(false)
+            }
+          }
+        } else {
+          // Set default S.R. DECOR business information if no settings are saved
+          const defaultSettings: BusinessSettings = {
+            businessInfo: {
+              name: 'S. R. DECOR',
+              email: 'srdecorofficial@gmail.com',
+              phone: '+91-9811627334',
+              address: 'SHOP NO. 3, DHANI RAM COMPLEX, NEAR METRO PILLAR NO. 54-55, Gurgaon, Haryana - 122002',
+              gstin: '06AFSPJ4994F1ZX',
+              pan: 'AFSPJ4994F',
+              state: 'Haryana (06)'
+            },
+            bankDetails: {
+              bankName: '',
+              accountHolderName: '',
+              accountNumber: '',
+              ifscCode: '',
+              branch: ''
+            },
+            termsConditions: ''
+          }
+          setBusinessSettings(defaultSettings)
+          
+          // Only create if flag is not set (prevent duplicate writes)
+          // No need for recheck read - the flag and loading state prevent race conditions
+          if (!isCreatingDefaultSettings) {
+            setIsCreatingDefaultSettings(true)
+            try {
+              // Save default settings to Firebase
+              const newDocRef = doc(collection(db, 'businessSettings'))
+              await setDoc(newDocRef, {
+                ...defaultSettings,
+                userId: user.uid,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+              })
+              setBusinessSettingsDocId(newDocRef.id) // Cache the document ID
+            } catch (error: any) {
+              // If document already exists (race condition), try to load it
+              if (error.code === 'permission-denied' || error.message?.includes('already exists')) {
+                const recheckSnapshot = await getDocs(q)
+                if (!recheckSnapshot.empty) {
+                  const docSnapshot = recheckSnapshot.docs[0]
+                  const settingsData = docSnapshot.data()
+                  const docId = docSnapshot.id
+                  setBusinessSettingsDocId(docId)
+                  
+                  const loadedSettings: BusinessSettings = {
+                    businessInfo: settingsData.businessInfo,
+                    bankDetails: settingsData.bankDetails || {
+                      bankName: '',
+                      accountHolderName: '',
+                      accountNumber: '',
+                      ifscCode: '',
+                      branch: ''
+                    },
+                    termsConditions: settingsData.termsConditions || ''
+                  }
+                  setBusinessSettings(loadedSettings)
+                  localStorage.setItem('businessSettings', JSON.stringify(loadedSettings))
+                }
+              } else {
+                throw error
+              }
+            } finally {
+              setIsCreatingDefaultSettings(false)
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading business settings:', error)
+      // Fallback to localStorage if Firebase fails
+      try {
+        const saved = localStorage.getItem('businessSettings')
+        if (saved) {
+          setBusinessSettings(JSON.parse(saved))
+        }
+      } catch (localError) {
+        console.error('Error loading from localStorage:', localError)
+      }
     } finally {
       setLoadingSettings(false)
     }

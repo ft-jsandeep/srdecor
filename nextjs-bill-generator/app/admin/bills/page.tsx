@@ -14,8 +14,10 @@ import {
   FileText,
   Calendar,
   User,
-  DollarSign
+  DollarSign,
+  Download
 } from 'lucide-react'
+import MergeBillsModal from '@/components/MergeBillsModal'
 
 export default function BillsPage() {
   const { bills, loadingBills, deleteBill, searchBills } = useApp()
@@ -26,6 +28,7 @@ export default function BillsPage() {
   const [showPreview, setShowPreview] = useState(false)
   const [previewData, setPreviewData] = useState<any>(null)
   const [editingBill, setEditingBill] = useState<any>(null)
+  const [showMergeModal, setShowMergeModal] = useState(false)
 
   useEffect(() => {
     if (searchTerm) {
@@ -89,13 +92,23 @@ export default function BillsPage() {
           <h1 className="text-3xl font-bold text-gray-900">All Bills</h1>
           <p className="text-gray-600 mt-1">Manage your invoices and estimates</p>
         </div>
-        <Link
-          href="/admin/new-bill"
-          className="btn btn-primary"
-        >
-          <Plus className="h-4 w-4" />
-          New Bill
-        </Link>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setShowMergeModal(true)}
+            className="btn btn-outline"
+            disabled={bills.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Merge by Month
+          </button>
+          <Link
+            href="/admin/new-bill"
+            className="btn btn-primary"
+          >
+            <Plus className="h-4 w-4" />
+            New Bill
+          </Link>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -262,6 +275,14 @@ export default function BillsPage() {
         <BillPreview
           onClose={() => setShowPreview(false)}
           billData={previewData}
+        />
+      )}
+
+      {/* Merge Bills Modal */}
+      {showMergeModal && (
+        <MergeBillsModal
+          onClose={() => setShowMergeModal(false)}
+          bills={bills}
         />
       )}
     </div>
