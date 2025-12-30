@@ -1,13 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
+const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-serif' })
 
 export const metadata: Metadata = {
-  title: 'Bill Generator Pro',
-  description: 'A modern web application for generating and managing business invoices',
+  title: 'SR Décor - Premium Home Décor',
+  description: 'Elegant and luxurious home décor products for your living spaces',
 }
 
 export default function RootLayout({
@@ -16,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} ${playfair.variable} font-sans`}>
         <Providers>
           {children}
         </Providers>

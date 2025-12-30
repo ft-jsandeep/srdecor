@@ -94,7 +94,7 @@ export default function AdminDashboard() {
           <div className="space-y-3">
             <Link
               href="/admin/new-bill"
-              className="flex items-center p-3 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition-colors"
+              className="flex items-center p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
             >
               <Plus className="h-5 w-5 mr-3" />
               Create New Bill
@@ -113,6 +113,13 @@ export default function AdminDashboard() {
               <Users className="h-5 w-5 mr-3" />
               Manage Customers
             </Link>
+            <Link
+              href="/admin/products"
+              className="flex items-center p-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <Package className="h-5 w-5 mr-3" />
+              Manage SR Décor Products
+            </Link>
           </div>
         </div>
 
@@ -120,7 +127,7 @@ export default function AdminDashboard() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Bills</h3>
           {loadingBills ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
             </div>
           ) : recentBills.length > 0 ? (
             <div className="space-y-3">
@@ -138,7 +145,7 @@ export default function AdminDashboard() {
               ))}
               <Link
                 href="/admin/bills"
-                className="block text-center text-primary-600 hover:text-primary-700 font-medium"
+                className="block text-center text-blue-600 hover:text-blue-700 font-medium"
               >
                 View all bills
               </Link>
@@ -149,7 +156,7 @@ export default function AdminDashboard() {
               <p>No bills created yet</p>
               <Link
                 href="/admin/new-bill"
-                className="text-primary-600 hover:text-primary-700 font-medium"
+                className="text-blue-600 hover:text-blue-700 font-medium"
               >
                 Create your first bill
               </Link>

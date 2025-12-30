@@ -27,12 +27,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
+    // Set a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      console.warn('Auth check timeout - setting loading to false')
       setLoading(false)
-    })
+    }, 3000) // 3 second timeout
 
-    return () => unsubscribe()
+    let unsubscribe: (() => void) | null = null
+
+    try {
+      // Check if auth is available
+      if (!auth) {
+        console.warn('Firebase auth not available - auth disabled')
+        setLoading(false)
+        clearTimeout(timeout)
+        return
+      }
+
+      unsubscribe = onAuthStateChanged(
+        auth,
+        (user) => {
+          setUser(user)
+          setLoading(false)
+          clearTimeout(timeout)
+        },
+        (error) => {
+          console.error('Auth state error:', error)
+          setLoading(false)
+          clearTimeout(timeout)
+        }
+      )
+    } catch (error) {
+      console.error('Firebase auth initialization error:', error)
+      setLoading(false)
+      clearTimeout(timeout)
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe()
+      }
+      clearTimeout(timeout)
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {

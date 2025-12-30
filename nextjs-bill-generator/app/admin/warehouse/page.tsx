@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 
 export default function WarehousePage() {
-  const { items, loadingItems, deleteItem, searchItems } = useApp()
+  const { items, loadingItems, deleteItem } = useApp()
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [filteredItems, setFilteredItems] = useState(items)

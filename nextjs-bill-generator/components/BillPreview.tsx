@@ -309,9 +309,9 @@ export default function BillPreview({ onClose, billData }: BillPreviewProps) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content max-w-4xl">
-        <div className="modal-header">
-          <h2 className="text-xl font-semibold text-gray-900">Bill Preview</h2>
+      <div className="modal-content max-w-4xl" style={{ backgroundColor: '#ffffff' }}>
+        <div className="modal-header" style={{ backgroundColor: '#ffffff', color: '#111827' }}>
+          <h2 className="text-xl font-semibold" style={{ color: '#111827' }}>Bill Preview</h2>
           <div className="flex items-center space-x-2">
             <select
               value={template}
@@ -338,10 +338,11 @@ export default function BillPreview({ onClose, billData }: BillPreviewProps) {
           </div>
         </div>
         
-        <div className="modal-body">
+        <div className="modal-body" style={{ backgroundColor: '#ffffff', color: '#111827' }}>
           <div 
             id="bill-preview-content"
             className="bg-white p-6 border rounded-lg"
+            style={{ backgroundColor: '#ffffff', color: '#000000' }}
             dangerouslySetInnerHTML={{ __html: generateBillHTML() }}
           />
         </div>

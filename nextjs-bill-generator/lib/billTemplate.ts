@@ -91,7 +91,15 @@ export const numberToWords = (num: number) => {
 }
 
 export const renderShippingAddress = (shippingInfo: any) => {
-  if (!shippingInfo || (!shippingInfo.name && !shippingInfo.address && !shippingInfo.city)) {
+  // Show section if any shipping field is filled
+  if (!shippingInfo || (
+    !shippingInfo.name && 
+    !shippingInfo.address && 
+    !shippingInfo.city && 
+    !shippingInfo.state && 
+    !shippingInfo.pincode && 
+    !shippingInfo.phone
+  )) {
     return ''
   }
 

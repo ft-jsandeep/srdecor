@@ -1,10 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
   images: {
-    domains: ['firebaseapp.com'],
+    domains: ['firebaseapp.com', 'images.unsplash.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ],
   },
   webpack: (config, { isServer }) => {
     // Handle undici module parsing issues

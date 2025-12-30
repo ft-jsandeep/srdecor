@@ -33,7 +33,25 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (businessSettings) {
-      setFormData(businessSettings)
+      setFormData({
+        businessInfo: {
+          name: businessSettings.businessInfo.name || '',
+          email: businessSettings.businessInfo.email || '',
+          phone: businessSettings.businessInfo.phone || '',
+          address: businessSettings.businessInfo.address || '',
+          gstin: businessSettings.businessInfo.gstin || '',
+          pan: businessSettings.businessInfo.pan || '',
+          state: businessSettings.businessInfo.state || 'Haryana (06)'
+        },
+        bankDetails: {
+          bankName: businessSettings.bankDetails.bankName || '',
+          accountHolderName: businessSettings.bankDetails.accountHolderName || '',
+          accountNumber: businessSettings.bankDetails.accountNumber || '',
+          ifscCode: businessSettings.bankDetails.ifscCode || '',
+          branch: businessSettings.bankDetails.branch || ''
+        },
+        termsConditions: businessSettings.termsConditions || ''
+      })
     }
   }, [businessSettings])
 

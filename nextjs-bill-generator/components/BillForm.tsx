@@ -118,8 +118,6 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
 
   // Track if we've prefilled the form to avoid overwriting user changes
   const [hasPrefilled, setHasPrefilled] = useState(false)
-  // Track which initialData we've already initialized with to prevent re-initialization
-  const [initializedBillId, setInitializedBillId] = useState<string | null>(null)
 
   // Helper function to check if two states are the same
   const isSameState = (state1: string, state2: string): boolean => {
@@ -191,59 +189,50 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
   // Populate form with initial data when editing or prefill from settings for new bill
   useEffect(() => {
     if (initialData) {
-      // Only initialize if this is a different bill (different ID) or we haven't initialized yet
-      const currentBillId = initialData.id || null
-      if (currentBillId !== initializedBillId) {
-        // Editing existing bill - initialize form with bill data
-        setFormData({
-          billType: initialData.billType,
-          billNumber: initialData.billNumber,
-          billDate: initialData.billDate,
-          placeOfSupply: initialData.placeOfSupply,
-          businessInfo: {
-            name: initialData.businessInfo.name,
-            email: initialData.businessInfo.email,
-            phone: initialData.businessInfo.phone,
-            address: initialData.businessInfo.address,
-            gstin: initialData.businessInfo.gstin || '',
-            pan: initialData.businessInfo.pan || '',
-            state: initialData.businessInfo.state
-          },
-          customerInfo: {
-            name: initialData.customerInfo.name,
-            email: initialData.customerInfo.email || '',
-            phone: initialData.customerInfo.phone || '',
-            address: initialData.customerInfo.address || '',
-            city: initialData.customerInfo.city || '',
-            state: initialData.customerInfo.state,
-            pincode: initialData.customerInfo.pincode || '',
-            gstin: initialData.customerInfo.gstin || ''
-          },
-          shippingInfo: {
-            name: initialData.shippingInfo?.name || '',
-            address: initialData.shippingInfo?.address || '',
-            city: initialData.shippingInfo?.city || '',
-            state: initialData.shippingInfo?.state || '',
-            pincode: initialData.shippingInfo?.pincode || '',
-            phone: initialData.shippingInfo?.phone || ''
-          },
-          bankDetails: {
-            bankName: initialData.bankDetails?.bankName || '',
-            accountHolderName: initialData.bankDetails?.accountHolderName || '',
-            accountNumber: initialData.bankDetails?.accountNumber || '',
-            ifscCode: initialData.bankDetails?.ifscCode || '',
-            branch: initialData.bankDetails?.branch || ''
-          },
-          items: initialData.items || [],
-          termsConditions: initialData.termsConditions || ''
-        })
-        setInitializedBillId(currentBillId)
-        setHasPrefilled(true)
-      }
-    } else if (!initialData && initializedBillId) {
-      // Switching from edit mode to new bill mode - reset state
-      setInitializedBillId(null)
-      setHasPrefilled(false)
+      // Editing existing bill
+      setFormData({
+        billType: initialData.billType,
+        billNumber: initialData.billNumber,
+        billDate: initialData.billDate,
+        placeOfSupply: initialData.placeOfSupply,
+        businessInfo: {
+          name: initialData.businessInfo.name,
+          email: initialData.businessInfo.email,
+          phone: initialData.businessInfo.phone,
+          address: initialData.businessInfo.address,
+          gstin: initialData.businessInfo.gstin || '',
+          pan: initialData.businessInfo.pan || '',
+          state: initialData.businessInfo.state
+        },
+        customerInfo: {
+          name: initialData.customerInfo.name,
+          email: initialData.customerInfo.email || '',
+          phone: initialData.customerInfo.phone || '',
+          address: initialData.customerInfo.address || '',
+          city: initialData.customerInfo.city || '',
+          state: initialData.customerInfo.state,
+          pincode: initialData.customerInfo.pincode || '',
+          gstin: initialData.customerInfo.gstin || ''
+        },
+        shippingInfo: {
+          name: initialData.shippingInfo?.name || '',
+          address: initialData.shippingInfo?.address || '',
+          city: initialData.shippingInfo?.city || '',
+          state: initialData.shippingInfo?.state || '',
+          pincode: initialData.shippingInfo?.pincode || '',
+          phone: initialData.shippingInfo?.phone || ''
+        },
+        bankDetails: {
+          bankName: initialData.bankDetails?.bankName || '',
+          accountHolderName: initialData.bankDetails?.accountHolderName || '',
+          accountNumber: initialData.bankDetails?.accountNumber || '',
+          ifscCode: initialData.bankDetails?.ifscCode || '',
+          branch: initialData.bankDetails?.branch || ''
+        },
+        items: initialData.items || [],
+        termsConditions: initialData.termsConditions || ''
+      })
+      setHasPrefilled(true)
     } else if (businessSettings && !hasPrefilled) {
       // New bill - prefill from business settings (only once)
       const currentDate = new Date().toISOString().split('T')[0]
@@ -272,7 +261,6 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
         placeOfSupply: businessSettings.businessInfo.state || 'Haryana (06)'
       }))
       setHasPrefilled(true)
-      setInitializedBillId(null) // Reset when creating new bill
     } else if (businessSettings && hasPrefilled && !initialData) {
       // If bills loaded after businessSettings, regenerate bill number with correct sequence
       const currentDate = formData.billDate || new Date().toISOString().split('T')[0]
@@ -285,7 +273,7 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
         }))
       }
     }
-  }, [initialData, businessSettings, hasPrefilled, generateBillNumber, formData.billNumber, formData.billType, initializedBillId])
+  }, [initialData, businessSettings, hasPrefilled, generateBillNumber, formData.billNumber, formData.billDate, formData.billType])
 
   // Update bill number when bills list changes (for new bills only)
   // This ensures bill number is updated when new bills are saved
@@ -782,6 +770,90 @@ export default function BillForm({ items, customers, onSave, onPreview, loading,
               onChange={(e) => setFormData(prev => ({ 
                 ...prev, 
                 customerInfo: { ...prev.customerInfo, address: e.target.value }
+              }))}
+              className="form-textarea"
+              rows={3}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Ship To Section (Optional) */}
+      <div className="card">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Ship To (Optional)</h3>
+        <p className="text-sm text-gray-600 mb-4">Fill this section only if the shipping address is different from the billing address.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="form-label">Name</label>
+            <input
+              type="text"
+              value={formData.shippingInfo.name}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                shippingInfo: { ...prev.shippingInfo, name: e.target.value }
+              }))}
+              className="form-input"
+            />
+          </div>
+          <div>
+            <label className="form-label">Phone</label>
+            <input
+              type="tel"
+              value={formData.shippingInfo.phone}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                shippingInfo: { ...prev.shippingInfo, phone: e.target.value }
+              }))}
+              className="form-input"
+            />
+          </div>
+          <div>
+            <label className="form-label">City</label>
+            <input
+              type="text"
+              value={formData.shippingInfo.city}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                shippingInfo: { ...prev.shippingInfo, city: e.target.value }
+              }))}
+              className="form-input"
+            />
+          </div>
+          <div>
+            <label className="form-label">State</label>
+            <select
+              value={formData.shippingInfo.state}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                shippingInfo: { ...prev.shippingInfo, state: e.target.value }
+              }))}
+              className="form-select"
+            >
+              <option value="">Select State</option>
+              {INDIAN_STATES.map(state => (
+                <option key={state} value={state}>{state}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Pincode</label>
+            <input
+              type="text"
+              value={formData.shippingInfo.pincode}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                shippingInfo: { ...prev.shippingInfo, pincode: e.target.value }
+              }))}
+              className="form-input"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="form-label">Address</label>
+            <textarea
+              value={formData.shippingInfo.address}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                shippingInfo: { ...prev.shippingInfo, address: e.target.value }
               }))}
               className="form-textarea"
               rows={3}

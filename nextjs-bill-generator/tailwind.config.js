@@ -5,10 +5,12 @@ module.exports = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-serif)', 'Georgia', 'serif'],
+        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
       },
       colors: {
         primary: {
@@ -18,18 +20,34 @@ module.exports = {
           600: '#2563eb',
           700: '#1d4ed8',
         },
-        gray: {
-          50: '#f9fafb',
-          100: '#f3f4f6',
-          200: '#e5e7eb',
-          300: '#d1d5db',
-          400: '#9ca3af',
-          500: '#6b7280',
-          600: '#4b5563',
-          700: '#374151',
-          800: '#1f2937',
-          900: '#111827',
+        // Light theme colors
+        light: {
+          bg: '#faf9f7',
+          surface: '#f5f3f0',
+          card: '#ffffff',
+          text: '#2c2c2c',
+          textMuted: '#6b6b6b',
+          border: '#e5e3e0',
+          accent: '#d4a574',
         },
+        // Dark theme colors
+        dark: {
+          bg: '#1a1816',
+          surface: '#252320',
+          card: '#2e2b28',
+          text: '#f5f3f0',
+          textMuted: '#a8a5a0',
+          border: '#3a3734',
+          accent: '#c9a066',
+        },
+      },
+      borderRadius: {
+        'xl': '1rem',
+        '2xl': '1.5rem',
+      },
+      boxShadow: {
+        'soft': '0 2px 8px rgba(0, 0, 0, 0.04)',
+        'soft-lg': '0 4px 16px rgba(0, 0, 0, 0.08)',
       },
     },
   },
