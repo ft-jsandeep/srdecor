@@ -29,7 +29,7 @@ function getPrefersReducedMotion() {
 
 export function HeroCarousel({
   slides,
-  autoPlayMs = 6500,
+  autoPlayMs = 3000,
   id,
   className = '',
 }: {
@@ -42,7 +42,6 @@ export function HeroCarousel({
   const hasMultiple = safeSlides.length > 1
 
   const [[index, direction], setIndex] = useState<[number, number]>([0, 0])
-  const [isPaused, setIsPaused] = useState(false)
   const reduceMotionRef = useRef(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -74,6 +73,7 @@ export function HeroCarousel({
     })
   }
 
+  // Auto-play effect
   useEffect(() => {
     // Clear any existing interval
     if (intervalRef.current) {
@@ -82,13 +82,14 @@ export function HeroCarousel({
     }
 
     if (!hasMultiple) return
-    if (isPaused) return
     if (reduceMotionRef.current) return
 
     // Set up auto-scroll
-    intervalRef.current = setInterval(() => {
-      paginate(1)
+    const interval = setInterval(() => {
+      setIndex(([i]) => [i + 1, 1])
     }, autoPlayMs)
+    
+    intervalRef.current = interval
 
     return () => {
       if (intervalRef.current) {
@@ -96,7 +97,7 @@ export function HeroCarousel({
         intervalRef.current = null
       }
     }
-  }, [autoPlayMs, hasMultiple, isPaused, paginate])
+  }, [autoPlayMs, hasMultiple, safeSlides.length])
 
   const variants = {
     enter: (dir: number) => ({
@@ -127,10 +128,6 @@ export function HeroCarousel({
         'relative w-full h-[100svh] overflow-hidden -mt-20',
         className,
       ].join(' ')}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      onFocusCapture={() => setIsPaused(true)}
-      onBlurCapture={() => setIsPaused(false)}
       onKeyDown={(e) => {
         if (!hasMultiple) return
         if (e.key === 'ArrowLeft') paginate(-1)
@@ -193,7 +190,7 @@ export function HeroCarousel({
               </div>
             ) : null}
 
-            <h1 className="font-serif text-4xl md:text-6xl font-bold text-white leading-tight">
+            <h1 className="font-sans text-4xl md:text-6xl font-bold text-white leading-tight">
               {activeSlide?.title ?? ''}
             </h1>
             <p className="text-lg md:text-2xl text-white/90 mt-5">
@@ -202,7 +199,7 @@ export function HeroCarousel({
 
             <div className="mt-9 flex items-center justify-center md:justify-start gap-3">
               <Link href={activeSlide?.href ?? '/products'}>
-                <Button variant="primary" className="bg-white text-gray-900 hover:bg-gray-100">
+                <Button variant="primary" className="!bg-dark-accent dark:!bg-dark-accent !text-white hover:!opacity-90">
                   {activeSlide?.ctaLabel ?? 'Explore Collection'}
                 </Button>
               </Link>

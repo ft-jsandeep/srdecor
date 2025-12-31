@@ -47,7 +47,7 @@ export default function AboutPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h1 className="font-serif text-4xl md:text-6xl font-bold text-white mb-4">
+            <h1 className="font-sans text-4xl md:text-6xl font-bold text-white mb-4">
               About SR Décor
             </h1>
             <p className="text-xl text-white/90 max-w-2xl">
@@ -66,7 +66,7 @@ export default function AboutPage() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="font-serif text-4xl font-bold text-light-text dark:text-dark-text mb-6">
+            <h2 className="font-sans text-4xl font-bold text-light-text dark:text-dark-text mb-6">
               Our Story
             </h2>
             <div className="space-y-4 text-light-textMuted dark:text-dark-textMuted">
@@ -113,7 +113,7 @@ export default function AboutPage() {
           transition={{ duration: 0.6 }}
           className="bg-light-surface dark:bg-dark-surface rounded-2xl p-8 md:p-12"
         >
-          <h2 className="font-serif text-4xl font-bold text-light-text dark:text-dark-text mb-6 text-center">
+          <h2 className="font-sans text-4xl font-bold text-light-text dark:text-dark-text mb-6 text-center">
             Our Mission
           </h2>
           <p className="text-lg text-light-textMuted dark:text-dark-textMuted text-center max-w-3xl mx-auto">
@@ -131,7 +131,7 @@ export default function AboutPage() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="font-serif text-4xl font-bold text-center text-light-text dark:text-dark-text mb-12"
+          className="font-sans text-4xl font-bold text-center text-light-text dark:text-dark-text mb-12"
         >
           Why Choose Us
         </motion.h2>
@@ -148,7 +148,7 @@ export default function AboutPage() {
               <div className="text-light-accent dark:text-dark-accent mb-4 flex justify-center">
                 {value.icon}
               </div>
-              <h3 className="font-serif text-xl font-semibold text-light-text dark:text-dark-text mb-3">
+              <h3 className="font-sans text-xl font-semibold text-light-text dark:text-dark-text mb-3">
                 {value.title}
               </h3>
               <p className="text-sm text-light-textMuted dark:text-dark-textMuted">

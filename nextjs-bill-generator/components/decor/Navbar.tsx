@@ -90,7 +90,7 @@ export function Navbar() {
           <Link href="/" className="flex items-center">
             <h1
               className={[
-                'font-serif text-2xl font-bold transition-colors',
+                'font-sans text-2xl font-bold transition-colors',
                 overlayText ? 'text-white' : 'text-light-text dark:text-dark-text',
               ].join(' ')}
             >

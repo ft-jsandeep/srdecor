@@ -79,7 +79,7 @@ export function CategoryChipsCarousel({
                     </div>
                   </div>
                   <div className="min-w-0">
-                    <div className="font-serif text-lg font-semibold text-light-text dark:text-dark-text group-hover:text-light-accent dark:group-hover:text-dark-accent transition-colors truncate">
+                    <div className="font-sans text-lg font-semibold text-light-text dark:text-dark-text group-hover:text-light-accent dark:group-hover:text-dark-accent transition-colors truncate">
                       {item.label}
                     </div>
                     {item.description ? (

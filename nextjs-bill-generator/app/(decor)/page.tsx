@@ -130,58 +130,62 @@ export default function HomePage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="font-serif text-4xl font-bold text-center text-light-text dark:text-dark-text mb-12"
+          className="font-sans text-4xl font-bold text-center text-light-text dark:text-dark-text mb-12"
         >
           Shop by Category
         </motion.h2>
         <CategoryGrid items={categories} textBlock={categoryTextBlock} />
       </section>
+      </div>
 
-      {/* Bestsellers */}
-      <section className="mb-20">
-        <div className="flex items-center justify-between mb-12">
-          <motion.h2
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="font-serif text-4xl font-bold text-light-text dark:text-dark-text"
-          >
-            Bestsellers
-          </motion.h2>
-          <Link href="/bestseller">
-            <Button variant="ghost">
-              View All
-              <ArrowRight size={18} className="ml-2" />
-            </Button>
-          </Link>
-        </div>
-        <BestsellerCarousel products={bestsellers} />
-      </section>
-
-      {/* New Arrivals */}
-      <section className="mb-20">
-        <div className="flex items-center justify-between mb-12">
-          <div className="flex items-center gap-3">
-            <Sparkles className="text-light-accent dark:text-dark-accent" size={32} />
+      {/* Bestsellers - Full Width */}
+      <section className="mb-20 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-12">
             <motion.h2
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="font-serif text-4xl font-bold text-light-text dark:text-dark-text"
+              className="font-sans text-4xl font-bold text-light-text dark:text-dark-text"
             >
-              New Arrivals
+              Bestsellers
             </motion.h2>
+            <Link href="/bestseller" className="flex items-center">
+              <Button variant="ghost" className="flex items-center gap-2">
+                View All
+                <ArrowRight size={18} />
+              </Button>
+            </Link>
           </div>
-          <Link href="/new-arrivals">
-            <Button variant="ghost">
-              View All
-              <ArrowRight size={18} className="ml-2" />
-            </Button>
-          </Link>
         </div>
-        <ProductGrid products={newArrivals} />
+        <BestsellerCarousel products={bestsellers} />
       </section>
-      </div>
+
+      {/* New Arrivals - Full Width */}
+      <section className="mb-20 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-12">
+            <div className="flex items-center gap-3">
+              <Sparkles className="text-light-accent dark:text-dark-accent" size={32} />
+              <motion.h2
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="font-sans text-4xl font-bold text-light-text dark:text-dark-text"
+              >
+                New Arrivals
+              </motion.h2>
+            </div>
+            <Link href="/new-arrivals" className="flex items-center">
+              <Button variant="ghost" className="flex items-center gap-2">
+                View All
+                <ArrowRight size={18} />
+              </Button>
+            </Link>
+          </div>
+          <ProductGrid products={newArrivals} />
+        </div>
+      </section>
     </div>
   )
 }

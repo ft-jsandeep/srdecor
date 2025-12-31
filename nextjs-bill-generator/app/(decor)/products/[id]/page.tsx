@@ -19,7 +19,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
   if (!product) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-        <h1 className="font-serif text-4xl font-bold text-light-text dark:text-dark-text mb-4">
+        <h1 className="font-sans text-4xl font-bold text-light-text dark:text-dark-text mb-4">
           Product Not Found
         </h1>
         <Link href="/products">
@@ -80,10 +80,10 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
             {product.isBestseller && <Tag variant="bestseller">Bestseller</Tag>}
             {product.isNewArrival && <Tag variant="new">New Arrival</Tag>}
           </div>
-          <h1 className="font-serif text-4xl md:text-5xl font-bold text-light-text dark:text-dark-text mb-4">
+          <h1 className="font-sans text-4xl md:text-5xl font-bold text-light-text dark:text-dark-text mb-4">
             {product.name}
           </h1>
-          <p className="text-3xl font-serif font-bold text-light-accent dark:text-dark-accent mb-6">
+          <p className="text-3xl font-sans font-bold text-light-accent dark:text-dark-accent mb-6">
             ₹{product.price.toLocaleString('en-IN')}
           </p>
           <p className="text-light-textMuted dark:text-dark-textMuted mb-8 leading-relaxed">
@@ -135,7 +135,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
       {/* Related Products */}
       {relatedProducts.length > 0 && (
         <section>
-          <h2 className="font-serif text-3xl font-bold text-light-text dark:text-dark-text mb-8">
+          <h2 className="font-sans text-3xl font-bold text-light-text dark:text-dark-text mb-8">
             Related Products
           </h2>
           <ProductGrid products={relatedProducts} />

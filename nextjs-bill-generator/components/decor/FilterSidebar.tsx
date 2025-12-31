@@ -35,7 +35,7 @@ export function FilterSidebar({ isOpen, onClose, selectedCategory, onCategoryCha
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="font-serif text-xl font-semibold text-light-text dark:text-dark-text">Filters</h2>
+                  <h2 className="font-sans text-xl font-semibold text-light-text dark:text-dark-text">Filters</h2>
                   <button onClick={onClose} className="text-light-text dark:text-dark-text">
                     <X size={24} />
                   </button>
@@ -71,7 +71,7 @@ export function FilterSidebar({ isOpen, onClose, selectedCategory, onCategoryCha
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:block w-64 bg-light-card dark:bg-dark-card rounded-2xl p-6 h-fit sticky top-24">
-        <h2 className="font-serif text-xl font-semibold text-light-text dark:text-dark-text mb-6">Filters</h2>
+        <h2 className="font-sans text-xl font-semibold text-light-text dark:text-dark-text mb-6">Filters</h2>
         <div className="space-y-4">
           <div>
             <h3 className="font-semibold text-light-text dark:text-dark-text mb-3">Category</h3>

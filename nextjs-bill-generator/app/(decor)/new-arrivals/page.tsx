@@ -18,7 +18,7 @@ export default function NewArrivalsPage() {
       >
         <div className="flex items-center gap-3 mb-4">
           <Sparkles className="text-light-accent dark:text-dark-accent" size={40} />
-          <h1 className="font-serif text-4xl md:text-5xl font-bold text-light-text dark:text-dark-text">
+          <h1 className="font-sans text-4xl md:text-5xl font-bold text-light-text dark:text-dark-text">
             New Arrivals
           </h1>
         </div>

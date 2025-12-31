@@ -15,7 +15,7 @@ export function ScreenSizeGuard({ children }: { children: React.ReactNode }) {
               <Monitor className="text-light-textMuted dark:text-dark-textMuted" size={64} />
             </div>
           </div>
-          <h1 className="font-serif text-3xl font-bold text-light-text dark:text-dark-text mb-4">
+          <h1 className="font-sans text-3xl font-bold text-light-text dark:text-dark-text mb-4">
             Screen Not Supported
           </h1>
           <p className="text-light-textMuted dark:text-dark-textMuted mb-6">

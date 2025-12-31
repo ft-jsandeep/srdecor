@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from './AuthContext'
 import { 
   collection, 
@@ -33,6 +33,22 @@ export interface Bill {
   roundingAmount: number
   total: number
   termsConditions: string
+  // Payment tracking fields
+  paidAmount?: number
+  balance?: number
+  paymentStatus?: 'pending' | 'partial' | 'paid'
+  createdAt?: any
+  updatedAt?: any
+}
+
+export interface PaymentRecord {
+  id?: string
+  billId: string
+  billNumber: string
+  customerName: string
+  amount: number
+  paymentDate: string
+  notes?: string
   createdAt?: any
   updatedAt?: any
 }
@@ -154,6 +170,16 @@ interface AppContextType {
   loadingSettings: boolean
   saveBusinessSettings: (settings: BusinessSettings) => Promise<void>
   loadBusinessSettings: () => Promise<void>
+  
+  // Payments
+  payments: PaymentRecord[]
+  loadingPayments: boolean
+  recordPayment: (billId: string, amount: number, paymentDate: string, notes?: string) => Promise<string>
+  loadPayments: () => Promise<void>
+  getPaymentsByBillId: (billId: string) => PaymentRecord[]
+  getPendingBills: () => Bill[]
+  updatePaymentStatus: (billId: string, paidAmount: number, paymentStatus?: 'pending' | 'partial' | 'paid') => Promise<void>
+  recalculatePaymentStatus: (billId: string) => Promise<void>
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -178,40 +204,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loadingSettings, setLoadingSettings] = useState(false)
   const [businessSettingsDocId, setBusinessSettingsDocId] = useState<string | null>(null)
   const [isCreatingDefaultSettings, setIsCreatingDefaultSettings] = useState(false)
+  
+  // Payments state
+  const [payments, setPayments] = useState<PaymentRecord[]>([])
+  const [loadingPayments, setLoadingPayments] = useState(false)
 
   // Stabilize user.uid to prevent unnecessary re-renders
   const userId = useMemo(() => user?.uid, [user?.uid])
-
-  // Load data when user changes
-  useEffect(() => {
-    if (userId) {
-      loadBills()
-      loadItems()
-      loadCustomers()
-      loadBusinessSettings()
-    } else {
-      setBills([])
-      setItems([])
-      setCustomers([])
-      setBusinessSettings(null)
-      setBusinessSettingsDocId(null) // Reset cached doc ID
-    }
-  }, [userId]) // Only depend on user.uid, not the whole user object
 
   // Bills functions
   const saveBill = async (billData: Omit<Bill, 'id'>) => {
     if (!user) throw new Error('Please log in to save bills')
     
+    // Initialize payment tracking for new bills (only invoices, not estimates)
+    const paymentData = billData.billType === 'invoice' ? {
+      paidAmount: 0,
+      balance: billData.total,
+      paymentStatus: 'pending' as const
+    } : {}
+    
     const collectionName = billData.billType === 'estimate' ? 'estimates' : 'bills'
     const docRef = await addDoc(collection(db, collectionName), {
       ...billData,
+      ...paymentData,
       userId: user.uid,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     })
     
     // Add to local state
-    const newBill = { ...billData, id: docRef.id }
+    const newBill = { ...billData, ...paymentData, id: docRef.id }
     setBills(prev => [newBill, ...prev])
     
     return docRef.id
@@ -225,6 +247,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     
     setLoadingBills(true)
     try {
+      // Load bills and estimates in parallel
       const [billsQuery, estimatesQuery] = await Promise.all([
         getDocs(query(collection(db, 'bills'), where('userId', '==', user.uid))),
         getDocs(query(collection(db, 'estimates'), where('userId', '==', user.uid)))
@@ -240,6 +263,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         billsData.push({ id: doc.id, ...doc.data() } as Bill)
       })
       
+      // Sort on frontend
       billsData.sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt)
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt)
@@ -331,6 +355,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         itemsData.push({ id: doc.id, ...doc.data() } as Item)
       })
       
+      // Sort on frontend
       itemsData.sort((a, b) => a.name.localeCompare(b.name))
       setItems(itemsData)
     } catch (error) {
@@ -397,6 +422,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         customersData.push({ id: doc.id, ...doc.data() } as Customer)
       })
       
+      // Sort on frontend
       customersData.sort((a, b) => a.name.localeCompare(b.name))
       setCustomers(customersData)
     } catch (error) {
@@ -644,7 +670,197 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const value = {
+  // Payment functions
+  const recordPayment = async (billId: string, amount: number, paymentDate: string, notes?: string) => {
+    if (!user) throw new Error('Please log in to record payments')
+    
+    const bill = bills.find(b => b.id === billId)
+    if (!bill) throw new Error('Bill not found')
+    
+    if (bill.billType === 'estimate') {
+      throw new Error('Cannot record payments for estimates')
+    }
+    
+    // Create payment record
+    const paymentRecord: Omit<PaymentRecord, 'id'> = {
+      billId,
+      billNumber: bill.billNumber,
+      customerName: bill.customerInfo.name,
+      amount,
+      paymentDate,
+      notes: notes || '',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }
+    
+    const docRef = await addDoc(collection(db, 'payments'), {
+      ...paymentRecord,
+      userId: user.uid
+    })
+    
+    // Update bill payment status
+    // At this point, we know bill.billType is 'invoice' (not 'estimate') due to check above
+    const currentPaidAmount = bill.paidAmount || 0
+    const newPaidAmount = currentPaidAmount + amount
+    const newBalance = bill.total - newPaidAmount
+    const paymentStatus = newBalance <= 0 ? 'paid' : (newPaidAmount > 0 ? 'partial' : 'pending')
+    
+    // bill.billType is guaranteed to be 'invoice' here, so use 'bills' collection
+    await updateDoc(doc(db, 'bills', billId), {
+      paidAmount: newPaidAmount,
+      balance: newBalance,
+      paymentStatus,
+      updatedAt: serverTimestamp()
+    })
+    
+    // Update local state
+    const newPayment = { ...paymentRecord, id: docRef.id }
+    setPayments(prev => [newPayment, ...prev].sort((a, b) => {
+      const dateA = a.paymentDate
+      const dateB = b.paymentDate
+      return dateB.localeCompare(dateA)
+    }))
+    
+    setBills(prev => prev.map(b => 
+      b.id === billId 
+        ? { ...b, paidAmount: newPaidAmount, balance: newBalance, paymentStatus }
+        : b
+    ))
+    
+    return docRef.id
+  }
+
+  const loadPayments = async () => {
+    if (!user) return
+    
+    if (loadingPayments) return
+    
+    setLoadingPayments(true)
+    try {
+      const q = query(collection(db, 'payments'), where('userId', '==', user.uid))
+      const snapshot = await getDocs(q)
+      const paymentsData: PaymentRecord[] = []
+      
+      snapshot.forEach(doc => {
+        paymentsData.push({ id: doc.id, ...doc.data() } as PaymentRecord)
+      })
+      
+      // Sort on frontend
+      paymentsData.sort((a, b) => {
+        const dateA = a.paymentDate
+        const dateB = b.paymentDate
+        return dateB.localeCompare(dateA)
+      })
+      
+      setPayments(paymentsData)
+    } catch (error) {
+      console.error('Error loading payments:', error)
+    } finally {
+      setLoadingPayments(false)
+    }
+  }
+
+  const getPaymentsByBillId = (billId: string): PaymentRecord[] => {
+    return payments.filter(p => p.billId === billId)
+  }
+
+  const getPendingBills = (): Bill[] => {
+    return bills.filter(bill => 
+      bill.billType === 'invoice' && 
+      (bill.paymentStatus === 'pending' || bill.paymentStatus === 'partial')
+    )
+  }
+
+  // Manually update payment status for a bill
+  const updatePaymentStatus = async (billId: string, paidAmount: number, paymentStatus?: 'pending' | 'partial' | 'paid') => {
+    if (!user) throw new Error('Please log in to update payment status')
+    
+    const bill = bills.find(b => b.id === billId)
+    if (!bill) throw new Error('Bill not found')
+    
+    if (bill.billType === 'estimate') {
+      throw new Error('Cannot update payment status for estimates')
+    }
+    
+    // Calculate balance and status if not provided
+    // At this point, we know bill.billType is 'invoice' (not 'estimate') due to check above
+    const newBalance = bill.total - paidAmount
+    const calculatedStatus: 'pending' | 'partial' | 'paid' = newBalance <= 0 ? 'paid' : (paidAmount > 0 ? 'partial' : 'pending')
+    const finalStatus = paymentStatus || calculatedStatus
+    
+    // bill.billType is guaranteed to be 'invoice' here, so use 'bills' collection
+    await updateDoc(doc(db, 'bills', billId), {
+      paidAmount,
+      balance: newBalance,
+      paymentStatus: finalStatus,
+      updatedAt: serverTimestamp()
+    })
+    
+    // Update local state
+    setBills(prev => prev.map(b => 
+      b.id === billId 
+        ? { ...b, paidAmount, balance: newBalance, paymentStatus: finalStatus }
+        : b
+    ))
+  }
+
+  // Recalculate payment status from existing payment records
+  const recalculatePaymentStatus = async (billId: string) => {
+    if (!user) throw new Error('Please log in to recalculate payment status')
+    
+    const bill = bills.find(b => b.id === billId)
+    if (!bill) throw new Error('Bill not found')
+    
+    if (bill.billType === 'estimate') {
+      throw new Error('Cannot recalculate payment status for estimates')
+    }
+    
+    // Get all payments for this bill
+    // At this point, we know bill.billType is 'invoice' (not 'estimate') due to check above
+    const billPayments = payments.filter(p => p.billId === billId)
+    const totalPaid = billPayments.reduce((sum, p) => sum + p.amount, 0)
+    const newBalance = bill.total - totalPaid
+    const paymentStatus: 'pending' | 'partial' | 'paid' = newBalance <= 0 ? 'paid' : (totalPaid > 0 ? 'partial' : 'pending')
+    
+    // bill.billType is guaranteed to be 'invoice' here, so use 'bills' collection
+    await updateDoc(doc(db, 'bills', billId), {
+      paidAmount: totalPaid,
+      balance: newBalance,
+      paymentStatus,
+      updatedAt: serverTimestamp()
+    })
+    
+    // Update local state
+    setBills(prev => prev.map(b => 
+      b.id === billId 
+        ? { ...b, paidAmount: totalPaid, balance: newBalance, paymentStatus }
+        : b
+    ))
+  }
+
+  // Load data when user changes
+  useEffect(() => {
+    if (!userId) {
+      setBills([])
+      setItems([])
+      setCustomers([])
+      setBusinessSettings(null)
+      setBusinessSettingsDocId(null) // Reset cached doc ID
+      setPayments([])
+      return
+    }
+    
+    // Call load functions - they're defined above, so they're available
+    loadBills()
+    loadItems()
+    loadCustomers()
+    loadBusinessSettings()
+    loadPayments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]) // Only depend on user.uid, not the whole user object
+
+  // Memoize context value to prevent SSR serialization issues
+  const value = useMemo(() => ({
     // Bills
     bills,
     loadingBills,
@@ -676,8 +892,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     businessSettings,
     loadingSettings,
     saveBusinessSettings,
-    loadBusinessSettings
-  }
+    loadBusinessSettings,
+    
+    // Payments
+    payments,
+    loadingPayments,
+    recordPayment,
+    loadPayments,
+    getPaymentsByBillId,
+    getPendingBills,
+    updatePaymentStatus,
+    recalculatePaymentStatus
+  }), [
+    bills,
+    loadingBills,
+    items,
+    loadingItems,
+    customers,
+    loadingCustomers,
+    businessSettings,
+    loadingSettings,
+    payments,
+    loadingPayments,
+    searchBills
+  ])
 
   return (
     <AppContext.Provider value={value}>

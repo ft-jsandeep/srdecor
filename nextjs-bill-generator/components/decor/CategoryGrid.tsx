@@ -91,7 +91,7 @@ export function CategoryGrid({
               
               {/* Category label */}
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                <h3 className="text-white text-xl md:text-2xl lg:text-3xl font-bold uppercase tracking-wider underline decoration-2 underline-offset-4">
+                <h3 className="text-white text-xl md:text-2xl lg:text-2xl font-bold uppercase tracking-wider decoration-2">
                   {item.label}
                 </h3>
               </div>
@@ -110,7 +110,7 @@ export function CategoryGrid({
           className="relative rounded-2xl bg-light-card dark:bg-dark-card md:row-start-2 md:row-span-1 md:col-span-1 lg:row-start-2 lg:row-span-1 lg:col-span-1 flex items-center justify-center p-8 md:p-12 min-h-[300px]"
         >
           <div className="text-center md:text-left w-full">
-            <h3 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold text-light-text dark:text-dark-text mb-4 leading-tight whitespace-pre-line">
+            <h3 className="font-sans text-3xl md:text-4xl lg:text-5xl font-bold text-light-text dark:text-dark-text mb-4 leading-tight whitespace-pre-line">
               {textBlock.headline}
             </h3>
             <p className="text-base md:text-lg text-light-textMuted dark:text-dark-textMuted leading-relaxed">
@@ -147,7 +147,7 @@ export function CategoryGrid({
               
               {/* Category label */}
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                <h3 className="text-white text-xl md:text-2xl lg:text-3xl font-bold uppercase tracking-wider underline decoration-2 underline-offset-4">
+                <h3 className="text-white text-xl md:text-2xl lg:text-2xl font-bold uppercase tracking-wider decoration-2">
                   {item.label}
                 </h3>
               </div>

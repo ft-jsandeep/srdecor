@@ -47,7 +47,7 @@ function ProductsContent() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
-        <h1 className="font-serif text-4xl md:text-5xl font-bold text-light-text dark:text-dark-text mb-4">
+        <h1 className="font-sans text-4xl md:text-5xl font-bold text-light-text dark:text-dark-text mb-4">
           Our Products
         </h1>
         <p className="text-light-textMuted dark:text-dark-textMuted">

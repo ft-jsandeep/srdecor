@@ -11,7 +11,9 @@ import {
   TrendingUp,
   Plus,
   Eye,
-  Edit
+  Edit,
+  AlertCircle,
+  DollarSign
 } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -22,7 +24,8 @@ export default function AdminDashboard() {
     customers, 
     loadingBills, 
     loadingItems, 
-    loadingCustomers 
+    loadingCustomers,
+    getPendingBills
   } = useApp()
 
   const recentBills = bills.slice(0, 5)
@@ -31,6 +34,8 @@ export default function AdminDashboard() {
   const totalCustomers = customers.length
 
   const totalRevenue = bills.reduce((sum, bill) => sum + bill.total, 0)
+  const pendingBills = getPendingBills()
+  const totalPendingAmount = pendingBills.reduce((sum, bill) => sum + (bill.balance || bill.total), 0)
 
   const stats = [
     {
@@ -86,6 +91,55 @@ export default function AdminDashboard() {
           </div>
         ))}
       </div>
+
+      {/* Pending Payments */}
+      {pendingBills.length > 0 && (
+        <div className="card border-l-4 border-orange-500">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <AlertCircle className="h-5 w-5 text-orange-500 mr-2" />
+              Pending Payments
+            </h3>
+            <span className="text-sm text-gray-600">
+              {pendingBills.length} {pendingBills.length === 1 ? 'bill' : 'bills'} pending
+            </span>
+          </div>
+          <div className="mb-4">
+            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+              <span className="text-sm font-medium text-gray-700">Total Pending Amount:</span>
+              <span className="text-lg font-bold text-orange-600">
+                ₹{totalPendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {pendingBills.slice(0, 5).map((bill) => (
+              <div key={bill.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900">{bill.billNumber}</div>
+                  <div className="text-sm text-gray-600">{bill.customerInfo.name}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-medium text-gray-900">
+                    ₹{(bill.balance || bill.total).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {bill.paymentStatus === 'partial' ? 'Partial' : 'Pending'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {pendingBills.length > 5 && (
+            <Link
+              href="/admin/bills"
+              className="block text-center text-blue-600 hover:text-blue-700 font-medium mt-3"
+            >
+              View all pending bills ({pendingBills.length})
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

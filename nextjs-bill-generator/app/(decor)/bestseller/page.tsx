@@ -18,7 +18,7 @@ export default function BestsellerPage() {
       >
         <div className="flex items-center gap-3 mb-4">
           <Award className="text-light-accent dark:text-dark-accent" size={40} />
-          <h1 className="font-serif text-4xl md:text-5xl font-bold text-light-text dark:text-dark-text">
+          <h1 className="font-sans text-4xl md:text-5xl font-bold text-light-text dark:text-dark-text">
             Bestsellers
           </h1>
         </div>

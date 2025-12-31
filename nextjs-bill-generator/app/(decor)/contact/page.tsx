@@ -29,7 +29,7 @@ export default function ContactPage() {
         transition={{ duration: 0.6 }}
         className="mb-12 text-center"
       >
-        <h1 className="font-serif text-4xl md:text-5xl font-bold text-light-text dark:text-dark-text mb-4">
+        <h1 className="font-sans text-4xl md:text-5xl font-bold text-light-text dark:text-dark-text mb-4">
           Get in Touch
         </h1>
         <p className="text-light-textMuted dark:text-dark-textMuted">
@@ -46,7 +46,7 @@ export default function ContactPage() {
           className="space-y-6"
         >
           <div>
-            <h2 className="font-serif text-2xl font-semibold text-light-text dark:text-dark-text mb-6">
+            <h2 className="font-sans text-2xl font-semibold text-light-text dark:text-dark-text mb-6">
               Contact Information
             </h2>
             <div className="space-y-4">

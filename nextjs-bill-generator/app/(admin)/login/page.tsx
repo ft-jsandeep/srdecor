@@ -34,7 +34,7 @@ export default function AdminLoginPage() {
           <div className="inline-flex p-4 rounded-full bg-light-surface dark:bg-dark-surface mb-4">
             <Lock className="text-light-accent dark:text-dark-accent" size={32} />
           </div>
-          <h1 className="font-serif text-3xl font-bold text-light-text dark:text-dark-text mb-2">
+          <h1 className="font-sans text-3xl font-bold text-light-text dark:text-dark-text mb-2">
             Admin Login
           </h1>
           <p className="text-light-textMuted dark:text-dark-textMuted">

@@ -35,13 +35,13 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
             </div>
           </div>
           <div className="p-6">
-            <h3 className="font-serif text-xl font-semibold text-light-text dark:text-dark-text mb-2 group-hover:text-light-accent dark:group-hover:text-dark-accent transition-colors">
+            <h3 className="font-sans text-xl font-semibold text-light-text dark:text-dark-text mb-2 group-hover:text-light-accent dark:group-hover:text-dark-accent transition-colors">
               {product.name}
             </h3>
             <p className="text-sm text-light-textMuted dark:text-dark-textMuted mb-4 line-clamp-2">
               {product.description}
             </p>
-            <p className="text-2xl font-serif font-bold text-light-text dark:text-dark-text">
+            <p className="text-2xl font-sans font-bold text-light-text dark:text-dark-text">
               ₹{product.price.toLocaleString('en-IN')}
             </p>
           </div>
