@@ -5,16 +5,18 @@ import { use } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShoppingCart } from 'lucide-react'
+import { ArrowLeft, MessageSquare } from 'lucide-react'
 import { getProductById, products } from '@/data/products'
 import { ProductGrid } from '@/components/decor/ProductGrid'
 import { Button } from '@/components/decor/Button'
 import { Tag } from '@/components/decor/Tag'
+import { QuotationRequestModal } from '@/components/decor/QuotationRequestModal'
 
 export default function ProductDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const product = getProductById(id)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   if (!product) {
     return (
@@ -83,9 +85,6 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
           <h1 className="font-sans text-4xl md:text-5xl font-bold text-light-text dark:text-dark-text mb-4">
             {product.name}
           </h1>
-          <p className="text-3xl font-sans font-bold text-light-accent dark:text-dark-accent mb-6">
-            ₹{product.price.toLocaleString('en-IN')}
-          </p>
           <p className="text-light-textMuted dark:text-dark-textMuted mb-8 leading-relaxed">
             {product.description}
           </p>
@@ -123,11 +122,14 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
           )}
 
           <div className="flex gap-4">
-            <Button variant="primary" className="flex-1">
-              <ShoppingCart size={20} className="mr-2" />
-              Add to Cart
+            <Button 
+              variant="primary" 
+              className="flex-1"
+              onClick={() => setIsModalOpen(true)}
+            >
+              <MessageSquare size={20} className="mr-2" />
+              Contact for Quotation
             </Button>
-            <Button variant="outline">Wishlist</Button>
           </div>
         </div>
       </div>
@@ -140,6 +142,15 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
           </h2>
           <ProductGrid products={relatedProducts} />
         </section>
+      )}
+
+      {/* Quotation Request Modal */}
+      {product && (
+        <QuotationRequestModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          product={product}
+        />
       )}
     </div>
   )

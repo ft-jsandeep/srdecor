@@ -8,7 +8,8 @@ import {
   List, 
   Package, 
   Users, 
-  Settings 
+  Settings,
+  MessageSquare
 } from 'lucide-react'
 
 const navigation = [
@@ -17,6 +18,7 @@ const navigation = [
   { name: 'All Bills', href: '/admin/bills', icon: List },
   { name: 'Warehouse', href: '/admin/warehouse', icon: Package },
   { name: 'Customers', href: '/admin/customers', icon: Users },
+  { name: 'Leads', href: '/admin/leads', icon: MessageSquare },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ]
 

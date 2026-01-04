@@ -16,7 +16,7 @@ function ProductsContent() {
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
   const [searchQuery, setSearchQuery] = useState('')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [sortBy, setSortBy] = useState<'name' | 'price-low' | 'price-high'>('name')
+  const [sortBy, setSortBy] = useState<'name'>('name')
 
   const filteredProducts = useMemo(() => {
     let result = getProductsByCategory(selectedCategory)
@@ -31,14 +31,7 @@ function ProductsContent() {
 
     // Sort
     result = [...result].sort((a, b) => {
-      switch (sortBy) {
-        case 'price-low':
-          return a.price - b.price
-        case 'price-high':
-          return b.price - a.price
-        default:
-          return a.name.localeCompare(b.name)
-      }
+      return a.name.localeCompare(b.name)
     })
 
     return result
@@ -92,8 +85,6 @@ function ProductsContent() {
               className="px-4 py-3 rounded-2xl bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent"
             >
               <option value="name">Sort by Name</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
             </select>
           </div>
 

@@ -169,7 +169,7 @@ export const renderTermsAndSignatory = (terms: string) => {
         <div style="flex: 1; display: flex; flex-direction: column;">
           <h3 style="margin: 0 0 5px 0; font-size: 12px;">Terms & Conditions:</h3>
           <div style="border: 1px solid #000; padding: 8px; flex: 1; min-height: 80px; display: flex; flex-direction: column;">
-            <div style="white-space: pre-line; font-size: 10px; flex: 1;">${safeString(terms)}</div>
+            <div style="white-space: pre-line; font-size: 10px; flex: 1; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word;">${safeString(terms)}</div>
           </div>
         </div>
         
@@ -220,10 +220,10 @@ export const generateESTRTTemplate = (billData: any) => {
   const itemsHtml = billData.items.map((item: any) => {
     let row = `
       <tr>
-        <td style="padding: 3px; border: 1px solid #000; text-align: left; font-size: 10px;">${safeString(item.name)}</td>
-        <td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${safeString(item.hsn)}</td>
+        <td style="padding: 3px; border: 1px solid #000; text-align: left; font-size: 10px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; max-width: 200px;">${safeString(item.name)}</td>
+        <td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px; word-wrap: break-word; overflow-wrap: break-word;">${safeString(item.hsn)}</td>
         <td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${safeString(item.quantity)}</td>
-        <td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px;">${safeString(getUnitDisplay(item.unit))}</td>
+        <td style="padding: 3px; border: 1px solid #000; text-align: center; font-size: 10px; word-wrap: break-word; overflow-wrap: break-word;">${safeString(getUnitDisplay(item.unit))}</td>
         <td style="padding: 3px; border: 1px solid #000; text-align: right; font-size: 10px;">₹${safeToFixed(item.rate)}</td>`
     
     if (hasDiscount) {
@@ -281,7 +281,7 @@ export const generateESTRTTemplate = (billData: any) => {
   const billNumberText = safeString(billData.billNumber) || `SR/2025-26/0001`
 
   let tableHeader = `
-    <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 10px;">
+    <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 10px; table-layout: fixed; word-wrap: break-word;">
       <thead>
         <tr style="background: #f0f0f0;">
           <th style="padding: 3px; border: 1px solid #000; text-align: left; font-weight: bold; font-size: 10px;">Item Description</th>
@@ -363,14 +363,14 @@ export const generateESTRTTemplate = (billData: any) => {
           </div>`
 
   return `
-    <div class="bill-preview" style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 10px; font-size: 11px;">
+    <div class="bill-preview" style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 10px; font-size: 11px; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word;">
       <!-- Company Header -->
       <div style="text-align: center; margin-bottom: 15px; border-bottom: 1px solid #000; padding-bottom: 10px;">
-        <h1 style="margin: 0; font-size: 18px; color: #333;">${safeString(billData.businessInfo.name)}</h1>
-        <p style="margin: 2px 0; font-size: 11px;">${safeString(billData.businessInfo.address)}</p>
-        <p style="margin: 2px 0; font-size: 11px;">Phone: ${safeString(billData.businessInfo.phone)} | Email: ${safeString(billData.businessInfo.email)}</p>
-        ${billData.businessInfo.gstin ? `<p style="margin: 2px 0; font-size: 11px;">GSTIN: ${safeString(billData.businessInfo.gstin)}</p>` : ''}
-        ${billData.businessInfo.pan ? `<p style="margin: 2px 0; font-size: 11px;">PAN: ${safeString(billData.businessInfo.pan)}</p>` : ''}
+        <h1 style="margin: 0; font-size: 18px; color: #333; word-wrap: break-word; overflow-wrap: break-word;">${safeString(billData.businessInfo.name)}</h1>
+        <p style="margin: 2px 0; font-size: 11px; word-wrap: break-word; overflow-wrap: break-word;">${safeString(billData.businessInfo.address)}</p>
+        <p style="margin: 2px 0; font-size: 11px; word-wrap: break-word; overflow-wrap: break-word;">Phone: ${safeString(billData.businessInfo.phone)} | Email: ${safeString(billData.businessInfo.email)}</p>
+        ${billData.businessInfo.gstin ? `<p style="margin: 2px 0; font-size: 11px; word-wrap: break-word; overflow-wrap: break-word;">GSTIN: ${safeString(billData.businessInfo.gstin)}</p>` : ''}
+        ${billData.businessInfo.pan ? `<p style="margin: 2px 0; font-size: 11px; word-wrap: break-word; overflow-wrap: break-word;">PAN: ${safeString(billData.businessInfo.pan)}</p>` : ''}
       </div>
 
       <!-- Bill Details -->
@@ -391,14 +391,14 @@ export const generateESTRTTemplate = (billData: any) => {
       <div style="margin-bottom: 10px;">
         <h3 style="margin: 0 0 5px 0; font-size: 12px;">Bill To:</h3>
         <div style="border: 1px solid #000; padding: 8px;">
-          <p style="margin: 0; font-weight: bold; font-size: 12px;">${safeString(billData.customerInfo.name)}</p>
-          ${billData.customerInfo.address ? `<p style="margin: 2px 0; font-size: 10px;">${safeString(billData.customerInfo.address)}</p>` : ''}
-          ${billData.customerInfo.city ? `<p style="margin: 2px 0; font-size: 10px;">${safeString(billData.customerInfo.city)}</p>` : ''}
-          ${billData.customerInfo.state ? `<p style="margin: 2px 0; font-size: 10px;">${safeString(billData.customerInfo.state).replace(/\s*\(\d+\)/, '')}</p>` : ''}
-          ${billData.customerInfo.pincode ? `<p style="margin: 2px 0; font-size: 10px;">${safeString(billData.customerInfo.pincode)}</p>` : ''}
-          ${billData.customerInfo.gstin ? `<p style="margin: 2px 0; font-size: 10px;">GSTIN: ${safeString(billData.customerInfo.gstin)}</p>` : ''}
-          ${billData.customerInfo.phone ? `<p style="margin: 2px 0; font-size: 10px;">Phone: ${safeString(billData.customerInfo.phone)}</p>` : ''}
-          ${billData.customerInfo.email ? `<p style="margin: 2px 0; font-size: 10px;">Email: ${safeString(billData.customerInfo.email)}</p>` : ''}
+          <p style="margin: 0; font-weight: bold; font-size: 12px; word-wrap: break-word; overflow-wrap: break-word;">${safeString(billData.customerInfo.name)}</p>
+          ${billData.customerInfo.address ? `<p style="margin: 2px 0; font-size: 10px; word-wrap: break-word; overflow-wrap: break-word;">${safeString(billData.customerInfo.address)}</p>` : ''}
+          ${billData.customerInfo.city ? `<p style="margin: 2px 0; font-size: 10px; word-wrap: break-word; overflow-wrap: break-word;">${safeString(billData.customerInfo.city)}</p>` : ''}
+          ${billData.customerInfo.state ? `<p style="margin: 2px 0; font-size: 10px; word-wrap: break-word; overflow-wrap: break-word;">${safeString(billData.customerInfo.state).replace(/\s*\(\d+\)/, '')}</p>` : ''}
+          ${billData.customerInfo.pincode ? `<p style="margin: 2px 0; font-size: 10px; word-wrap: break-word; overflow-wrap: break-word;">${safeString(billData.customerInfo.pincode)}</p>` : ''}
+          ${billData.customerInfo.gstin ? `<p style="margin: 2px 0; font-size: 10px; word-wrap: break-word; overflow-wrap: break-word;">GSTIN: ${safeString(billData.customerInfo.gstin)}</p>` : ''}
+          ${billData.customerInfo.phone ? `<p style="margin: 2px 0; font-size: 10px; word-wrap: break-word; overflow-wrap: break-word;">Phone: ${safeString(billData.customerInfo.phone)}</p>` : ''}
+          ${billData.customerInfo.email ? `<p style="margin: 2px 0; font-size: 10px; word-wrap: break-word; overflow-wrap: break-word;">Email: ${safeString(billData.customerInfo.email)}</p>` : ''}
         </div>
       </div>
 
@@ -413,7 +413,7 @@ export const generateESTRTTemplate = (billData: any) => {
 
       <!-- Total in Words -->
       <div style="margin-bottom: 10px;">
-        <p style="margin: 0; font-size: 10px;"><strong>Total in Words:</strong> ${numberToWords(billData.total)}</p>
+        <p style="margin: 0; font-size: 10px; word-wrap: break-word; overflow-wrap: break-word;"><strong>Total in Words:</strong> ${numberToWords(billData.total)}</p>
       </div>
 
       ${renderBankDetails(billData.bankDetails)}

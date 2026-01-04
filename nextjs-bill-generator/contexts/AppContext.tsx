@@ -137,6 +137,21 @@ export interface BusinessSettings {
   termsConditions: string
 }
 
+export interface QuotationRequest {
+  id?: string
+  productId: string
+  productName: string
+  productCategory: string
+  productPrice: number
+  customerName: string
+  email: string
+  phone: string
+  message: string
+  status: 'pending' | 'contacted' | 'quoted' | 'closed'
+  createdAt?: any
+  updatedAt?: any
+}
+
 interface AppContextType {
   // Bills
   bills: Bill[]
@@ -180,6 +195,12 @@ interface AppContextType {
   getPendingBills: () => Bill[]
   updatePaymentStatus: (billId: string, paidAmount: number, paymentStatus?: 'pending' | 'partial' | 'paid') => Promise<void>
   recalculatePaymentStatus: (billId: string) => Promise<void>
+  
+  // Quotation Requests
+  quotationRequests: QuotationRequest[]
+  loadingQuotationRequests: boolean
+  loadQuotationRequests: () => Promise<void>
+  updateQuotationRequestStatus: (requestId: string, status: QuotationRequest['status']) => Promise<void>
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -208,6 +229,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Payments state
   const [payments, setPayments] = useState<PaymentRecord[]>([])
   const [loadingPayments, setLoadingPayments] = useState(false)
+  
+  // Quotation Requests state
+  const [quotationRequests, setQuotationRequests] = useState<QuotationRequest[]>([])
+  const [loadingQuotationRequests, setLoadingQuotationRequests] = useState(false)
 
   // Stabilize user.uid to prevent unnecessary re-renders
   const userId = useMemo(() => user?.uid, [user?.uid])
@@ -838,6 +863,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ))
   }
 
+  // Quotation Requests functions
+  const loadQuotationRequests = async () => {
+    if (!user) return
+    
+    if (loadingQuotationRequests) return
+    
+    setLoadingQuotationRequests(true)
+    try {
+      const querySnapshot = await getDocs(collection(db, 'quotationRequests'))
+      const requests: QuotationRequest[] = []
+      
+      querySnapshot.forEach((doc) => {
+        requests.push({ id: doc.id, ...doc.data() } as QuotationRequest)
+      })
+      
+      // Sort by creation date (newest first)
+      requests.sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0)
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0)
+        return dateB.getTime() - dateA.getTime()
+      })
+      
+      setQuotationRequests(requests)
+    } catch (error) {
+      console.error('Error loading quotation requests:', error)
+    } finally {
+      setLoadingQuotationRequests(false)
+    }
+  }
+
+  const updateQuotationRequestStatus = async (requestId: string, status: QuotationRequest['status']) => {
+    if (!user) throw new Error('Please log in to update quotation requests')
+    
+    await updateDoc(doc(db, 'quotationRequests', requestId), {
+      status,
+      updatedAt: serverTimestamp()
+    })
+    
+    setQuotationRequests(prev => prev.map(req => 
+      req.id === requestId ? { ...req, status, updatedAt: new Date() } : req
+    ))
+  }
+
   // Load data when user changes
   useEffect(() => {
     if (!userId) {
@@ -847,6 +915,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setBusinessSettings(null)
       setBusinessSettingsDocId(null) // Reset cached doc ID
       setPayments([])
+      setQuotationRequests([])
       return
     }
     
@@ -856,6 +925,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadCustomers()
     loadBusinessSettings()
     loadPayments()
+    loadQuotationRequests()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]) // Only depend on user.uid, not the whole user object
 
@@ -902,7 +972,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     getPaymentsByBillId,
     getPendingBills,
     updatePaymentStatus,
-    recalculatePaymentStatus
+    recalculatePaymentStatus,
+    
+    // Quotation Requests
+    quotationRequests,
+    loadingQuotationRequests,
+    loadQuotationRequests,
+    updateQuotationRequestStatus
   }), [
     bills,
     loadingBills,
@@ -914,6 +990,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadingSettings,
     payments,
     loadingPayments,
+    quotationRequests,
+    loadingQuotationRequests,
     searchBills
   ])
 

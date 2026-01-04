@@ -13,7 +13,8 @@ import {
   Eye,
   Edit,
   AlertCircle,
-  DollarSign
+  DollarSign,
+  MessageSquare
 } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -22,6 +23,7 @@ export default function AdminDashboard() {
     bills, 
     items, 
     customers, 
+    quotationRequests,
     loadingBills, 
     loadingItems, 
     loadingCustomers,
@@ -32,6 +34,7 @@ export default function AdminDashboard() {
   const totalBills = bills.length
   const totalItems = items.length
   const totalCustomers = customers.length
+  const pendingLeads = quotationRequests.filter(r => r.status === 'pending').length
 
   const totalRevenue = bills.reduce((sum, bill) => sum + bill.total, 0)
   const pendingBills = getPendingBills()
@@ -173,6 +176,18 @@ export default function AdminDashboard() {
             >
               <Package className="h-5 w-5 mr-3" />
               Manage SR Décor Products
+            </Link>
+            <Link
+              href="/admin/leads"
+              className="flex items-center p-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors relative"
+            >
+              <MessageSquare className="h-5 w-5 mr-3" />
+              Quotation Requests
+              {pendingLeads > 0 && (
+                <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  {pendingLeads}
+                </span>
+              )}
             </Link>
           </div>
         </div>

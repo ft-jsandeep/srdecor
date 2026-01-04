@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Download, Calendar } from 'lucide-react'
+import { X, Download, Calendar, Printer } from 'lucide-react'
 import { Bill } from '@/contexts/AppContext'
-import { mergeBillsToPDF } from '@/lib/pdfUtils'
+import { openBillsForPrint } from '@/lib/pdfUtils'
 
 interface MergeBillsModalProps {
   onClose: () => void
@@ -16,7 +16,7 @@ export default function MergeBillsModal({ onClose, bills }: MergeBillsModalProps
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [isOpening, setIsOpening] = useState(false)
 
   // Filter bills by selected month
   const filteredBills = bills.filter(bill => {
@@ -62,36 +62,29 @@ export default function MergeBillsModal({ onClose, bills }: MergeBillsModalProps
     })
   }
 
-  const handleDownload = async () => {
+  const handlePrint = () => {
     if (filteredBills.length === 0) {
       alert('No bills found for the selected month')
       return
     }
 
-    setIsGenerating(true)
+    setIsOpening(true)
     try {
       // Sort bills by invoice number
       const sortedBills = sortBillsByInvoiceNumber(filteredBills)
 
-      // Generate merged PDF
-      const blob = await mergeBillsToPDF(sortedBills)
+      // Open bills in new window for native browser print
+      openBillsForPrint(sortedBills)
 
-      // Download the PDF
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `Bills_${selectedMonth.replace('-', '_')}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-
-      onClose()
+      // Close modal after a short delay to allow window to open
+      setTimeout(() => {
+        setIsOpening(false)
+        onClose()
+      }, 500)
     } catch (error) {
-      console.error('Error generating PDF:', error)
-      alert('Error generating PDF. Please try again.')
-    } finally {
-      setIsGenerating(false)
+      console.error('Error opening print preview:', error)
+      alert('Error opening print preview. Please try again.')
+      setIsOpening(false)
     }
   }
 
@@ -99,7 +92,7 @@ export default function MergeBillsModal({ onClose, bills }: MergeBillsModalProps
     <div className="modal-overlay">
       <div className="modal-content max-w-md">
         <div className="modal-header">
-          <h2 className="text-xl font-semibold text-gray-900">Merge Bills by Month</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Print Merged Bills by Month</h2>
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-600"
@@ -166,30 +159,41 @@ export default function MergeBillsModal({ onClose, bills }: MergeBillsModalProps
               <p>No bills found for the selected month.</p>
             </div>
           )}
+
+          {filteredBills.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+              <p className="font-medium mb-1">💡 How to use:</p>
+              <p className="text-xs">
+                Click "Open Print Preview" to view all bills in a new window. 
+                Use the browser's print dialog (Ctrl+P / Cmd+P) and select "Save as PDF" 
+                to download the merged bills.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="modal-footer">
           <button
             onClick={onClose}
             className="btn btn-outline"
-            disabled={isGenerating}
+            disabled={isOpening}
           >
             Cancel
           </button>
           <button
-            onClick={handleDownload}
-            disabled={isGenerating || filteredBills.length === 0}
+            onClick={handlePrint}
+            disabled={isOpening || filteredBills.length === 0}
             className="btn btn-primary"
           >
-            {isGenerating ? (
+            {isOpening ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Generating...
+                Opening...
               </>
             ) : (
               <>
-                <Download className="h-4 w-4" />
-                Download Merged PDF
+                <Printer className="h-4 w-4 mr-2" />
+                Open Print Preview
               </>
             )}
           </button>
