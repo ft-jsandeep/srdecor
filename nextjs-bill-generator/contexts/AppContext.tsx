@@ -195,6 +195,9 @@ interface AppContextType {
   getPendingBills: () => Bill[]
   updatePaymentStatus: (billId: string, paidAmount: number, paymentStatus?: 'pending' | 'partial' | 'paid') => Promise<void>
   recalculatePaymentStatus: (billId: string) => Promise<void>
+  // Customer-level payments
+  recordCustomerPayment: (customerName: string, totalAmount: number, paymentDate: string, notes?: string, billDistribution?: { billId: string, amount: number }[]) => Promise<void>
+  updateCustomerPaymentStatus: (customerName: string, paidAmounts: { billId: string, paidAmount: number }[], paymentStatus?: 'pending' | 'partial' | 'paid') => Promise<void>
   
   // Quotation Requests
   quotationRequests: QuotationRequest[]
@@ -863,6 +866,200 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ))
   }
 
+  // Customer-level payment functions
+  const recordCustomerPayment = async (
+    customerName: string, 
+    totalAmount: number, 
+    paymentDate: string, 
+    notes?: string,
+    billDistribution?: { billId: string, amount: number }[]
+  ) => {
+    if (!user) throw new Error('Please log in to record payments')
+    
+    // Get all pending bills for this customer
+    const customerBills = bills.filter(b => 
+      b.customerInfo.name === customerName && 
+      b.billType === 'invoice' &&
+      (b.paymentStatus === 'pending' || b.paymentStatus === 'partial')
+    ).sort((a, b) => {
+      // Sort by date (oldest first) to pay oldest bills first
+      const dateA = new Date(a.billDate).getTime()
+      const dateB = new Date(b.billDate).getTime()
+      return dateA - dateB
+    })
+
+    if (customerBills.length === 0) {
+      throw new Error('No pending bills found for this customer')
+    }
+
+    let remainingAmount = totalAmount
+    const paymentRecords: { billId: string, amount: number }[] = []
+
+    // If billDistribution is provided, use it; otherwise distribute automatically
+    if (billDistribution && billDistribution.length > 0) {
+      // Validate distribution
+      const distributionTotal = billDistribution.reduce((sum, d) => sum + d.amount, 0)
+      if (Math.abs(distributionTotal - totalAmount) > 0.01) {
+        throw new Error(`Distribution total (${distributionTotal}) does not match payment amount (${totalAmount})`)
+      }
+
+      // Validate each bill amount doesn't exceed balance
+      for (const dist of billDistribution) {
+        const bill = customerBills.find(b => b.id === dist.billId)
+        if (!bill) {
+          throw new Error(`Bill ${dist.billId} not found for customer ${customerName}`)
+        }
+        const billBalance = bill.balance ?? bill.total
+        if (dist.amount > billBalance) {
+          throw new Error(`Payment amount for bill ${bill.billNumber} exceeds balance`)
+        }
+        paymentRecords.push(dist)
+      }
+    } else {
+      // Auto-distribute: pay oldest bills first
+      for (const bill of customerBills) {
+        if (remainingAmount <= 0) break
+        
+        const billBalance = bill.balance ?? bill.total
+        const paymentAmount = Math.min(remainingAmount, billBalance)
+        
+        if (paymentAmount > 0) {
+          paymentRecords.push({ billId: bill.id!, amount: paymentAmount })
+          remainingAmount -= paymentAmount
+        }
+      }
+
+      if (remainingAmount > 0.01) {
+        throw new Error(`Payment amount exceeds total pending amount. Remaining: ${remainingAmount.toFixed(2)}`)
+      }
+    }
+
+    // Record payments for each bill
+    const paymentIds: string[] = []
+    for (const paymentRecord of paymentRecords) {
+      const bill = customerBills.find(b => b.id === paymentRecord.billId)!
+      
+      // Create payment record
+      const paymentDoc: Omit<PaymentRecord, 'id'> = {
+        billId: paymentRecord.billId,
+        billNumber: bill.billNumber,
+        customerName: customerName,
+        amount: paymentRecord.amount,
+        paymentDate,
+        notes: notes || '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }
+      
+      const docRef = await addDoc(collection(db, 'payments'), {
+        ...paymentDoc,
+        userId: user.uid
+      })
+      paymentIds.push(docRef.id)
+
+      // Update bill payment status
+      const currentPaidAmount = bill.paidAmount || 0
+      const newPaidAmount = currentPaidAmount + paymentRecord.amount
+      const newBalance = bill.total - newPaidAmount
+      const paymentStatus = newBalance <= 0 ? 'paid' : (newPaidAmount > 0 ? 'partial' : 'pending')
+      
+      // Ensure userId is preserved in the update
+      // Note: userId is stored in Firestore but not in the Bill TypeScript interface
+      const billData = bill as any
+      const billUpdate: any = {
+        paidAmount: newPaidAmount,
+        balance: newBalance,
+        paymentStatus,
+        updatedAt: serverTimestamp()
+      }
+      
+      // Preserve userId if it exists in the bill, otherwise set it to current user
+      billUpdate.userId = billData.userId || user.uid
+      
+      await updateDoc(doc(db, 'bills', paymentRecord.billId), billUpdate)
+
+      // Update local state
+      setBills(prev => prev.map(b => 
+        b.id === paymentRecord.billId 
+          ? { ...b, paidAmount: newPaidAmount, balance: newBalance, paymentStatus }
+          : b
+      ))
+    }
+
+    // Add payment records to local state
+    const newPayments = paymentRecords.map((pr, idx) => {
+      const bill = customerBills.find(b => b.id === pr.billId)!
+      return {
+        id: paymentIds[idx],
+        billId: pr.billId,
+        billNumber: bill.billNumber,
+        customerName: customerName,
+        amount: pr.amount,
+        paymentDate,
+        notes: notes || '',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      } as PaymentRecord
+    })
+
+    setPayments(prev => [...newPayments, ...prev].sort((a, b) => {
+      const dateA = a.paymentDate
+      const dateB = b.paymentDate
+      return dateB.localeCompare(dateA)
+    }))
+  }
+
+  const updateCustomerPaymentStatus = async (
+    customerName: string,
+    paidAmounts: { billId: string, paidAmount: number }[],
+    paymentStatus?: 'pending' | 'partial' | 'paid'
+  ) => {
+    if (!user) throw new Error('Please log in to update payment status')
+    
+    // Get all bills for this customer
+    const customerBills = bills.filter(b => 
+      b.customerInfo.name === customerName && 
+      b.billType === 'invoice'
+    )
+
+    // Update each bill
+    for (const paidAmount of paidAmounts) {
+      const bill = customerBills.find(b => b.id === paidAmount.billId)
+      if (!bill) {
+        throw new Error(`Bill ${paidAmount.billId} not found for customer ${customerName}`)
+      }
+
+      if (paidAmount.paidAmount < 0 || paidAmount.paidAmount > bill.total) {
+        throw new Error(`Invalid paid amount for bill ${bill.billNumber}`)
+      }
+
+      const newBalance = bill.total - paidAmount.paidAmount
+      const status = paymentStatus || (newBalance <= 0 ? 'paid' : (paidAmount.paidAmount > 0 ? 'partial' : 'pending'))
+      
+      // Ensure userId is preserved in the update
+      // Note: userId is stored in Firestore but not in the Bill TypeScript interface
+      const billData = bill as any
+      const billUpdate: any = {
+        paidAmount: paidAmount.paidAmount,
+        balance: newBalance,
+        paymentStatus: status,
+        updatedAt: serverTimestamp()
+      }
+      
+      // Preserve userId if it exists in the bill, otherwise set it to current user
+      billUpdate.userId = billData.userId || user.uid
+      
+      await updateDoc(doc(db, 'bills', paidAmount.billId), billUpdate)
+
+      // Update local state
+      setBills(prev => prev.map(b => 
+        b.id === paidAmount.billId 
+          ? { ...b, paidAmount: paidAmount.paidAmount, balance: newBalance, paymentStatus: status }
+          : b
+      ))
+    }
+  }
+
   // Quotation Requests functions
   const loadQuotationRequests = async () => {
     if (!user) return
@@ -973,6 +1170,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     getPendingBills,
     updatePaymentStatus,
     recalculatePaymentStatus,
+    recordCustomerPayment,
+    updateCustomerPaymentStatus,
     
     // Quotation Requests
     quotationRequests,

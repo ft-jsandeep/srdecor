@@ -11,11 +11,26 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
+    // Helper function to check if user owns the document or document has no userId (backward compatibility)
+    function isOwnerOrNoUserId(resource) {
+      return isAuthenticated() && 
+             (resource == null || 
+              resource.data.userId == null || 
+              resource.data.userId == request.auth.uid);
+    }
+    
     // Bills collection
     match /bills/{document} {
-      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      // Allow read if authenticated and user owns it (or document has no userId for backward compatibility)
+      allow read: if isOwnerOrNoUserId(resource);
+      // Allow create if authenticated and userId matches
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+      // Allow update if authenticated and user owns it, and userId is preserved
+      allow update: if isOwnerOrNoUserId(resource) &&
+                     (request.resource.data.userId == null || 
+                      request.resource.data.userId == request.auth.uid);
+      // Allow delete if authenticated and user owns it
+      allow delete: if isOwnerOrNoUserId(resource);
     }
     
     // Estimates collection
@@ -58,9 +73,16 @@ service cloud.firestore {
     
     // Payments collection
     match /payments/{document} {
-      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      // Allow read if authenticated and user owns it (or document has no userId for backward compatibility)
+      allow read: if isOwnerOrNoUserId(resource);
+      // Allow create if authenticated and userId matches
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+      // Allow update if authenticated and user owns it, and userId is preserved
+      allow update: if isOwnerOrNoUserId(resource) &&
+                     (request.resource.data.userId == null || 
+                      request.resource.data.userId == request.auth.uid);
+      // Allow delete if authenticated and user owns it
+      allow delete: if isOwnerOrNoUserId(resource);
     }
     
     // Quotation Requests collection

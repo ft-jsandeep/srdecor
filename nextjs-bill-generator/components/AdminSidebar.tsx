@@ -9,13 +9,15 @@ import {
   Package, 
   Users, 
   Settings,
-  MessageSquare
+  MessageSquare,
+  CreditCard
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: Home },
   { name: 'New Bill', href: '/admin/new-bill', icon: FileText },
   { name: 'All Bills', href: '/admin/bills', icon: List },
+  { name: 'Payments', href: '/admin/payments', icon: CreditCard },
   { name: 'Warehouse', href: '/admin/warehouse', icon: Package },
   { name: 'Customers', href: '/admin/customers', icon: Users },
   { name: 'Leads', href: '/admin/leads', icon: MessageSquare },
@@ -26,7 +28,7 @@ export default function AdminSidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="w-64 bg-white shadow-sm border-r border-gray-200 min-h-screen">
+    <div className="sticky top-[73px] h-[calc(100vh-73px)] w-64 bg-white shadow-sm border-r border-gray-200 overflow-y-auto">
       <nav className="mt-6 px-3">
         <ul className="space-y-1">
           {navigation.map((item) => {
